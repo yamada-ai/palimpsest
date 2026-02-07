@@ -69,3 +69,26 @@ func TestValidateEventEdgeRemovedMissingEdge(t *testing.T) {
 		t.Fatalf("expected edge removal of missing edge to be invalid")
 	}
 }
+
+type testValidator struct{}
+
+func (v testValidator) ValidateEvent(ctx context.Context, g *Graph, e Event) []ValidationError {
+	return []ValidationError{
+		{Type: "custom_rule", NodeID: e.NodeID, Message: "custom validation failed"},
+	}
+}
+
+func TestValidateEventWithCustomValidators(t *testing.T) {
+	log := NewEventLog()
+	log.Append(Event{Type: EventNodeAdded, NodeID: "a", NodeType: NodeField})
+	g := ReplayLatest(log)
+
+	ctx := context.Background()
+	res := ValidateEventWith(ctx, g, Event{Type: EventAttrUpdated, NodeID: "a", Attrs: Attrs{"x": 1}}, []Validator{testValidator{}})
+	if res.Valid {
+		t.Fatalf("expected validation to fail with custom validator")
+	}
+	if len(res.Errors) == 0 || res.Errors[0].Type != "custom_rule" {
+		t.Fatalf("expected custom validation error")
+	}
+}

@@ -24,6 +24,11 @@ type ValidationResult struct {
 	Cancelled bool
 }
 
+// Validator provides extension hooks for custom validation rules.
+type Validator interface {
+	ValidateEvent(ctx context.Context, g *Graph, e Event) []ValidationError
+}
+
 // Validate checks invariants on the graph.
 // 現在は参照整合性（dangling edge なし）のみを確認する。
 func Validate(ctx context.Context, g *Graph) *ValidationResult {
@@ -150,6 +155,14 @@ func ValidateSeeds(ctx context.Context, g *Graph, seeds []NodeID) *ValidationRes
 // 1) イベント固有の前提チェック
 // 2) 重要イベントのみ局所の不変条件（ValidateSeeds）も併用
 func ValidateEvent(ctx context.Context, g *Graph, e Event) *ValidationResult {
+	return ValidateEventWith(ctx, g, e, nil)
+}
+
+// ValidateEventWith validates a single event with optional custom validators.
+// 1) イベント固有の前提チェック
+// 2) 重要イベントのみ局所の不変条件（ValidateSeeds）も併用
+// 3) 追加ルールは validators で拡張（nil/空でもOK）
+func ValidateEventWith(ctx context.Context, g *Graph, e Event, validators []Validator) *ValidationResult {
 	result := &ValidationResult{
 		Valid:    true,
 		Errors:   make([]ValidationError, 0),
@@ -270,6 +283,25 @@ func ValidateEvent(ctx context.Context, g *Graph, e Event) *ValidationResult {
 		if !seedResult.Valid {
 			result.Valid = false
 			result.Errors = append(result.Errors, seedResult.Errors...)
+		}
+	}
+
+	// Custom validators
+	for _, v := range validators {
+		// Respect cancellation between validators.
+		select {
+		case <-ctx.Done():
+			result.Cancelled = true
+			return result
+		default:
+		}
+		if v == nil {
+			continue
+		}
+		errs := v.ValidateEvent(ctx, g, e)
+		if len(errs) > 0 {
+			result.Valid = false
+			result.Errors = append(result.Errors, errs...)
 		}
 	}
 
