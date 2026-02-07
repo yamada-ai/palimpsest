@@ -59,7 +59,8 @@ docs/
 │   ├── 0001-event-log-as-sot.md
 │   ├── 0002-revision-and-simulation.md
 │   ├── 0003-before-after-graph-selection.md
-│   └── 0004-validation-responsibility.md
+│   ├── 0004-validation-responsibility.md
+│   └── 0005-delta-based-apply-and-rollback.md
 ├── roadmap.md            # 実装順・進捗
 ├── specs/
 │   └── mvp.md
