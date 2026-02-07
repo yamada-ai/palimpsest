@@ -97,7 +97,8 @@ palimpsest/
     │   ├── 0002-revision-and-simulation.md
     │   ├── 0003-before-after-graph-selection.md
     │   ├── 0004-validation-responsibility.md
-    │   └── 0005-delta-based-apply-and-rollback.md
+    │   ├── 0005-delta-based-apply-and-rollback.md
+    │   └── 0006-immutable-snapshot-and-tail-replay.md
     ├── roadmap.md                  # 実装順・進捗
     ├── specs/
     │   └── mvp.md                  # MVP 仕様
