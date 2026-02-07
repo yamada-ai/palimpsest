@@ -58,6 +58,7 @@ const (
 	NodeList       NodeType = "List"
 	NodeExpression NodeType = "Expression"
 	NodeRole       NodeType = "Role"
+	NodeParam      NodeType = "Param"
 )
 
 // Attrs holds arbitrary node attributes.

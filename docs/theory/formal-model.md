@@ -60,7 +60,7 @@ $$
 ### 1.5 ノード型
 
 $$
-T = \{\texttt{Entity}, \texttt{Field}, \texttt{Form}, \texttt{List}, \texttt{Expression}, \texttt{Role}\}
+T = \{\texttt{Entity}, \texttt{Field}, \texttt{Form}, \texttt{List}, \texttt{Expression}, \texttt{Role}, \texttt{Param}\}
 $$
 
 各ノード $v \in V$ は型 $\tau(v) \in T$ と属性 $\text{attrs}(v)$ を持つ。

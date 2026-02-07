@@ -102,7 +102,7 @@ TxMarker(tx_id: string, meta: map[string]string)
 MVP:
 
 $$
-T = \{\texttt{Entity}, \texttt{Field}, \texttt{Form}, \texttt{List}, \texttt{Expression}, \texttt{Role}\}
+T = \{\texttt{Entity}, \texttt{Field}, \texttt{Form}, \texttt{List}, \texttt{Expression}, \texttt{Role}, \texttt{Param}\}
 $$
 
 将来拡張: `CsvSchema`, `ApiSchema`, `Workflow`, `PermissionRule`, ...
@@ -121,7 +121,7 @@ $$
         "type": { "const": "NodeAdded" },
         "node_id": { "type": "string" },
         "node_type": {
-          "enum": ["Entity", "Field", "Form", "List", "Expression", "Role"]
+          "enum": ["Entity", "Field", "Form", "List", "Expression", "Role", "Param"]
         },
         "attrs": { "type": "object" }
       },
