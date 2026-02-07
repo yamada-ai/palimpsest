@@ -34,6 +34,29 @@ go run ./cmd/visualize -mode all # 可視化デモ（Why/Impact/Remove/Scale/Ben
 go run ./cmd/visualize -mode bench -bench-nodes 50000 -bench-edges 150000
 ```
 
+## Sandbox / Speculative（利用例）
+
+```go
+// Snapshot + tail replay で request-local graph を作る
+log := palimpsest.NewEventLog()
+// ... log.Append(...)
+
+snap := palimpsest.SnapshotFromLog(log, log.Len()-1)
+sb := palimpsest.NewSandbox(snap, log, log.Len()-1)
+
+ctx := context.Background()
+res := sb.SimulateEvent(ctx, palimpsest.Event{
+    Type:   palimpsest.EventAttrUpdated,
+    NodeID: "field:order.subtotal",
+    Attrs:  palimpsest.Attrs{"type": "decimal"},
+})
+
+// PreValidate / PreImpact / PostImpact などを参照
+_ = res.PreValidate
+_ = res.PreImpact
+_ = res.PostImpact
+```
+
 ### 出力例
 
 ```
