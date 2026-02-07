@@ -28,9 +28,9 @@ Phase 1: RFC + Protobuf
     - RFC-0002: Core Logic（replay/impact/validate 仕様化）
     ↓
 Phase 2: Sandbox + Speculative
-    - 仮説イベント適用
-    - LRU Cache
-    - Speculative Computation
+    - 仮説イベント適用 (Done)
+    - LRU Cache (Done)
+    - Speculative Computation (Done)
     ↓
 Phase 3: AI Simulation
     - 変更前シミュレーション

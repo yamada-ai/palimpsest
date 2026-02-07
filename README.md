@@ -127,7 +127,8 @@ palimpsest/
     │   └── 0007-lazy-evidence.md
     ├── roadmap.md                  # 実装順・進捗
     ├── specs/
-    │   └── mvp.md                  # MVP 仕様
+    │   ├── mvp.md                  # MVP 仕様
+    │   └── phase2.md               # Phase 2 仕様
     └── scenarios/
         └── ai-agent.md             # AI UX シナリオ
 ```
