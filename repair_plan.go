@@ -120,7 +120,7 @@ func severityForType(t NodeType) Severity {
 		return SeverityHigh
 	case NodeForm, NodeList:
 		return SeverityMedium
-	case NodeRole, NodeEntity, NodeParam:
+	case NodeRole, NodeEntity, NodeRelation, NodeParam:
 		return SeverityLow
 	default:
 		return SeverityLow
@@ -141,6 +141,8 @@ func messageForType(t NodeType) string {
 		return "権限が影響を受けるため、アクセス制御を確認してください"
 	case NodeEntity:
 		return "エンティティが影響を受けるため、関連する構造を確認してください"
+	case NodeRelation:
+		return "リレーションが影響を受けるため、関連する関係を確認してください"
 	case NodeParam:
 		return "パラメータ変更の影響があるため、依存先を確認してください"
 	default:

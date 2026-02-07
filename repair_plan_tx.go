@@ -203,7 +203,7 @@ func autoLevelForEdge(g *Graph, edge Edge) AutoLevel {
 		return AutoFixable
 	case NodeExpression:
 		return NeedsReview
-	case NodeField, NodeEntity, NodeRole, NodeParam:
+	case NodeField, NodeEntity, NodeRelation, NodeRole, NodeParam:
 		return NeedsReview
 	default:
 		return NeedsReview
@@ -235,6 +235,10 @@ func proposeForType(nodeID NodeID, nodeType NodeType) (string, string, []Propose
 	case NodeEntity:
 		return "エンティティの確認", "構造/関連の整合性を確認", []ProposedEvent{
 			{Event: Event{Type: EventAttrUpdated, NodeID: nodeID, Attrs: Attrs{"repair_hint": "review entity"}}, Note: "構造の見直し", Applyable: false, AutoLevel: NeedsReview},
+		}
+	case NodeRelation:
+		return "リレーションの確認", "関係の整合性を確認", []ProposedEvent{
+			{Event: Event{Type: EventAttrUpdated, NodeID: nodeID, Attrs: Attrs{"repair_hint": "review relation"}}, Note: "関係の見直し", Applyable: false, AutoLevel: NeedsReview},
 		}
 	case NodeParam:
 		return "パラメータの確認", "依存先との整合性を確認", []ProposedEvent{

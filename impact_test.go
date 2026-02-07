@@ -154,7 +154,7 @@ func TestCancellation(t *testing.T) {
 	for i := 0; i < 100; i++ {
 		log.Append(Event{
 			Type:     EventNodeAdded,
-			NodeID:   NodeID(string(rune('a' + i%26)) + string(rune('0'+i/26))),
+			NodeID:   NodeID(string(rune('a'+i%26)) + string(rune('0'+i/26))),
 			NodeType: NodeField,
 		})
 	}
@@ -215,6 +215,52 @@ func TestValidationDanglingEdge(t *testing.T) {
 		t.Error("expected at least one validation error")
 	}
 	t.Logf("Detected errors: %+v", result.Errors)
+}
+
+func TestRelationNodeImpact(t *testing.T) {
+	// リレーションノード経由の依存がImpact/Evidenceに出ることを確認する
+	log := NewEventLog()
+
+	log.Append(Event{Type: EventNodeAdded, NodeID: "entity:product", NodeType: NodeEntity})
+	log.Append(Event{Type: EventNodeAdded, NodeID: "entity:tag", NodeType: NodeEntity})
+	log.Append(Event{Type: EventNodeAdded, NodeID: "rel:product_tag", NodeType: NodeRelation})
+	log.Append(Event{Type: EventNodeAdded, NodeID: "field:product_tag.product_id", NodeType: NodeField})
+	log.Append(Event{Type: EventNodeAdded, NodeID: "field:product_tag.tag_id", NodeType: NodeField})
+	log.Append(Event{Type: EventNodeAdded, NodeID: "field:product_tag.quantity", NodeType: NodeField})
+	log.Append(Event{Type: EventNodeAdded, NodeID: "expr:tagged_products.filter", NodeType: NodeExpression})
+	log.Append(Event{Type: EventNodeAdded, NodeID: "list:tagged_products", NodeType: NodeList})
+
+	// 関係の構造
+	log.Append(Event{Type: EventEdgeAdded, FromNode: "entity:product", ToNode: "rel:product_tag", Label: LabelDerives})
+	log.Append(Event{Type: EventEdgeAdded, FromNode: "entity:tag", ToNode: "rel:product_tag", Label: LabelDerives})
+	log.Append(Event{Type: EventEdgeAdded, FromNode: "entity:product", ToNode: "field:product_tag.product_id", Label: LabelConstrains})
+	log.Append(Event{Type: EventEdgeAdded, FromNode: "entity:tag", ToNode: "field:product_tag.tag_id", Label: LabelConstrains})
+
+	// 依存の本体: quantity -> expr -> list
+	log.Append(Event{Type: EventEdgeAdded, FromNode: "field:product_tag.quantity", ToNode: "expr:tagged_products.filter", Label: LabelUses})
+	log.Append(Event{Type: EventEdgeAdded, FromNode: "expr:tagged_products.filter", ToNode: "list:tagged_products", Label: LabelDerives})
+
+	g := ReplayLatest(log)
+	e := Event{Type: EventAttrUpdated, NodeID: "field:product_tag.quantity"}
+	res := ImpactFromEvent(context.Background(), g, e)
+
+	if !res.Impacted["expr:tagged_products.filter"] {
+		t.Fatalf("expected expr:tagged_products.filter to be impacted")
+	}
+	if !res.Impacted["list:tagged_products"] {
+		t.Fatalf("expected list:tagged_products to be impacted")
+	}
+
+	path := res.Path("list:tagged_products")
+	expected := []NodeID{"field:product_tag.quantity", "expr:tagged_products.filter", "list:tagged_products"}
+	if len(path) != len(expected) {
+		t.Fatalf("expected path length %d, got %d", len(expected), len(path))
+	}
+	for i, node := range expected {
+		if path[i] != node {
+			t.Fatalf("expected path[%d]=%s, got %s", i, node, path[i])
+		}
+	}
 }
 
 func TestTransactionMarker(t *testing.T) {

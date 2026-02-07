@@ -53,6 +53,7 @@ type NodeType string
 
 const (
 	NodeEntity     NodeType = "Entity"
+	NodeRelation   NodeType = "Relation"
 	NodeField      NodeType = "Field"
 	NodeForm       NodeType = "Form"
 	NodeList       NodeType = "List"
