@@ -17,12 +17,17 @@ type SimulationResult struct {
 
 	Applied bool
 
+	// Error captures Apply/Rollback failures (should be rare if ValidateEvent passes).
+	// If rollback fails, the graph should be treated as corrupted and discarded.
+	Error error
+
 	PostImpact   *ImpactResult
 	PostValidate *ValidationResult
 }
 
 // SimulateEvent runs the pre-impact, pre-validate, apply, and post-validate flow.
-// It never mutates the input graph; the event is applied to a cloned graph.
+// It temporarily mutates the provided graph and then rolls back via delta.
+// If the graph is shared, callers must ensure exclusive access during this call.
 // NOTE: PreImpact may be empty for NodeAdded/EdgeAdded because the seed does not exist yet.
 // In that case, rely on PostImpact for the "after" view.
 func SimulateEvent(ctx context.Context, g *Graph, e Event) *SimulationResult {
@@ -42,17 +47,24 @@ func SimulateEvent(ctx context.Context, g *Graph, e Event) *SimulationResult {
 		return result
 	}
 
-	// Clone and apply for post checks.
-	after := g.Clone()
-	applyEvent(after, e)
+	delta, err := ApplyEvent(g, e)
+	if err != nil {
+		result.Error = err
+		return result
+	}
 	result.Applied = true
 	result.AfterRevision = result.BeforeRevision + 1
+	defer func() {
+		if err := RollbackDelta(g, delta); err != nil && result.Error == nil {
+			result.Error = err
+		}
+	}()
 
-	result.PostValidate = Validate(ctx, after)
+	result.PostValidate = Validate(ctx, g)
 	if result.PostValidate.Cancelled {
 		return result
 	}
 
-	result.PostImpact = ImpactFromEvent(ctx, after, e)
+	result.PostImpact = ImpactFromEvent(ctx, g, e)
 	return result
 }
