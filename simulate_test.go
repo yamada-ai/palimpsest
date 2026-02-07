@@ -22,6 +22,9 @@ func TestSimulateEventNodeAddedPrePost(t *testing.T) {
 	if res.PostImpact == nil || res.PostValidate == nil {
 		t.Fatalf("expected post results to be present")
 	}
+	if res.Error != nil {
+		t.Fatalf("unexpected error: %v", res.Error)
+	}
 	if res.PreImpact.Impacted["n1"] {
 		t.Fatalf("expected pre-impact to be empty for NodeAdded")
 	}
@@ -48,6 +51,9 @@ func TestSimulateEventNodeRemovedPrePost(t *testing.T) {
 	}
 	if res.PostImpact == nil || res.PostValidate == nil {
 		t.Fatalf("expected post results to be present")
+	}
+	if res.Error != nil {
+		t.Fatalf("unexpected error: %v", res.Error)
 	}
 	if !res.PreImpact.Impacted["a"] {
 		t.Fatalf("expected pre-impact to include removed node")
@@ -78,8 +84,30 @@ func TestSimulateEventEdgeRemovedPrePost(t *testing.T) {
 	if res.PostImpact == nil || res.PostValidate == nil {
 		t.Fatalf("expected post results to be present")
 	}
+	if res.Error != nil {
+		t.Fatalf("unexpected error: %v", res.Error)
+	}
 	if !res.PreImpact.Impacted["b"] {
 		t.Fatalf("expected pre-impact to include consumer node")
+	}
+}
+
+func TestSimulateEventInvalidPreValidate(t *testing.T) {
+	// PreValidate で拒否されるイベントは適用されない
+	g := NewGraph()
+	ctx := context.Background()
+
+	e := Event{Type: EventNodeRemoved, NodeID: "missing"}
+	res := SimulateEvent(ctx, g, e)
+
+	if res.Applied {
+		t.Fatalf("expected event to be rejected")
+	}
+	if res.AfterRevision != res.BeforeRevision {
+		t.Fatalf("expected AfterRevision to equal BeforeRevision on rejection")
+	}
+	if res.PostImpact != nil || res.PostValidate != nil {
+		t.Fatalf("expected no post results on rejection")
 	}
 }
 

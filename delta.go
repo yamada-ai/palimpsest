@@ -3,7 +3,7 @@ package palimpsest
 import "fmt"
 
 // Delta represents the change set produced by applying a single event.
-// It contains enough information to rollback to the previous state.
+// ロールバックに必要十分な情報を保持する差分。
 type Delta struct {
 	Event     Event
 	BeforeRev int
@@ -19,12 +19,13 @@ type Delta struct {
 }
 
 // NodeSnapshot captures a complete node snapshot for rollback.
+// NodeRemoved の復元に必要な情報（attrs/edges含む）を保持する。
 type NodeSnapshot struct {
 	Node Node
 }
 
 // AttrChange captures a single attribute update.
-// Deleted is true when the change deleted the key (After == nil).
+// Deleted はキー削除（After == nil）のとき true。
 type AttrChange struct {
 	NodeID  NodeID
 	Key     string
@@ -34,6 +35,7 @@ type AttrChange struct {
 }
 
 // ApplyEvent applies a single event to the graph and returns a rollback delta.
+// 変更はΔとして記録され、Rollbackで元に戻せることが前提。
 func ApplyEvent(g *Graph, e Event) (Delta, error) {
 	delta := Delta{
 		Event:     e,
@@ -42,12 +44,14 @@ func ApplyEvent(g *Graph, e Event) (Delta, error) {
 
 	switch e.Type {
 	case EventNodeAdded:
+		// 既存ノードへの追加は不正
 		if g.HasNode(e.NodeID) {
 			return delta, fmt.Errorf("node already exists: %s", e.NodeID)
 		}
 		g.addNode(e.NodeID, e.NodeType, e.Attrs)
 		delta.AddedNodes = append(delta.AddedNodes, e.NodeID)
 	case EventNodeRemoved:
+		// 削除前のスナップショットを保持してロールバック可能にする
 		node := g.GetNode(e.NodeID)
 		if node == nil {
 			return delta, fmt.Errorf("node does not exist: %s", e.NodeID)
@@ -56,6 +60,7 @@ func ApplyEvent(g *Graph, e Event) (Delta, error) {
 		delta.RemovedEdges = append(delta.RemovedEdges, collectIncidentEdges(node)...)
 		g.removeNode(e.NodeID)
 	case EventAttrUpdated:
+		// 変更前後をDeltaに記録して復元できるようにする
 		node := g.GetNode(e.NodeID)
 		if node == nil {
 			return delta, fmt.Errorf("node does not exist: %s", e.NodeID)
@@ -73,6 +78,7 @@ func ApplyEvent(g *Graph, e Event) (Delta, error) {
 		}
 		g.updateAttrs(e.NodeID, e.Attrs)
 	case EventEdgeAdded:
+		// 重複エッジは拒否（Rollbackで既存エッジを消さないため）
 		if !g.HasNode(e.FromNode) || !g.HasNode(e.ToNode) {
 			return delta, fmt.Errorf("edge endpoints must exist: %s -> %s", e.FromNode, e.ToNode)
 		}
@@ -83,6 +89,7 @@ func ApplyEvent(g *Graph, e Event) (Delta, error) {
 		g.addEdge(edge.From, edge.To, edge.Label)
 		delta.AddedEdges = append(delta.AddedEdges, edge)
 	case EventEdgeRemoved:
+		// 削除対象のエッジをDeltaに保存して復元できるようにする
 		if !g.HasNode(e.FromNode) || !g.HasNode(e.ToNode) {
 			return delta, fmt.Errorf("edge endpoints must exist: %s -> %s", e.FromNode, e.ToNode)
 		}
@@ -104,6 +111,7 @@ func ApplyEvent(g *Graph, e Event) (Delta, error) {
 }
 
 // RollbackDelta restores the graph state using a delta.
+// 失敗した場合はGraphが不正状態になる可能性があるため、呼び出し側で破棄する。
 func RollbackDelta(g *Graph, d Delta) error {
 	for _, snap := range d.RemovedNodes {
 		if g.HasNode(snap.Node.ID) {

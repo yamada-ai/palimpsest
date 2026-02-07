@@ -38,6 +38,7 @@ func sortEdges(edges []Edge) {
 }
 
 func TestApplyRollbackNoopNodeAdded(t *testing.T) {
+	// NodeAdded の apply + rollback で元の状態に戻ることを確認
 	g := NewGraph()
 	before := snapshotGraph(g)
 
@@ -56,6 +57,7 @@ func TestApplyRollbackNoopNodeAdded(t *testing.T) {
 }
 
 func TestApplyRollbackNoopNodeRemoved(t *testing.T) {
+	// NodeRemoved の apply + rollback で元の状態に戻ることを確認
 	log := NewEventLog()
 	log.Append(Event{Type: EventNodeAdded, NodeID: "a", NodeType: NodeField, Attrs: Attrs{"x": 1}})
 	log.Append(Event{Type: EventNodeAdded, NodeID: "b", NodeType: NodeField})
@@ -78,6 +80,7 @@ func TestApplyRollbackNoopNodeRemoved(t *testing.T) {
 }
 
 func TestApplyRollbackNoopAttrUpdated(t *testing.T) {
+	// AttrUpdated の apply + rollback で元の状態に戻ることを確認
 	log := NewEventLog()
 	log.Append(Event{Type: EventNodeAdded, NodeID: "a", NodeType: NodeField, Attrs: Attrs{"x": 1, "y": 2}})
 	g := ReplayLatest(log)
@@ -98,6 +101,7 @@ func TestApplyRollbackNoopAttrUpdated(t *testing.T) {
 }
 
 func TestApplyRollbackNoopEdgeRemoved(t *testing.T) {
+	// EdgeRemoved の apply + rollback で元の状態に戻ることを確認
 	log := NewEventLog()
 	log.Append(Event{Type: EventNodeAdded, NodeID: "a", NodeType: NodeField})
 	log.Append(Event{Type: EventNodeAdded, NodeID: "b", NodeType: NodeField})
@@ -120,6 +124,7 @@ func TestApplyRollbackNoopEdgeRemoved(t *testing.T) {
 }
 
 func TestApplyEventRejectsDuplicateEdge(t *testing.T) {
+	// 重複エッジはApplyEventで拒否される
 	log := NewEventLog()
 	log.Append(Event{Type: EventNodeAdded, NodeID: "a", NodeType: NodeField})
 	log.Append(Event{Type: EventNodeAdded, NodeID: "b", NodeType: NodeField})

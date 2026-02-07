@@ -18,7 +18,7 @@ type SimulationResult struct {
 	Applied bool
 
 	// Error captures Apply/Rollback failures (should be rare if ValidateEvent passes).
-	// If rollback fails, the graph should be treated as corrupted and discarded.
+	// Rollbackに失敗した場合、Graphは破棄前提で扱う。
 	Error error
 
 	PostImpact   *ImpactResult
@@ -26,8 +26,8 @@ type SimulationResult struct {
 }
 
 // SimulateEvent runs the pre-impact, pre-validate, apply, and post-validate flow.
-// It temporarily mutates the provided graph and then rolls back via delta.
-// If the graph is shared, callers must ensure exclusive access during this call.
+// 一時的にGraphを変更してからDeltaで巻き戻す。
+// 共有Graphを渡す場合は排他が必要。リクエスト専有なら不要。
 // NOTE: PreImpact may be empty for NodeAdded/EdgeAdded because the seed does not exist yet.
 // In that case, rely on PostImpact for the "after" view.
 func SimulateEvent(ctx context.Context, g *Graph, e Event) *SimulationResult {
