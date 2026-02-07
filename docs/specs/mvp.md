@@ -6,7 +6,7 @@
 
 ## 0. 本文書の位置づけ
 
-本文書は、[charter-v0.3-final.md](../theory/charter-v0.3-final.md) で定義した理論を実装する最小構成を規定する。目標は「Day 2 の安心感」を最小限のコードで実証すること。
+本文書は、[charter.md](../theory/charter.md) で定義した理論を実装する最小構成を規定する。目標は「Day 2 の安心感」を最小限のコードで実証すること。
 
 完全な製品ではなく、理論の検証と次フェーズへの学びを得るための PoC である。
 
@@ -147,24 +147,7 @@ MVP では dangling edge のみ。将来拡張で必須制約、SCC 閾値など
 
 ---
 
-## 6. 実装状況
+## 6. 関連ドキュメント
 
-| ファイル | 状態 |
-|---------|------|
-| `event.go` | Done |
-| `graph.go` | Done |
-| `replay.go` | Done |
-| `impact.go` | Done |
-| `validation.go` | Done |
-| `impact_test.go` | Done |
-| `cmd/demo/main.go` | Done |
-
----
-
-## 7. 次のステップ
-
-| Phase | 内容 |
-|-------|------|
-| v1 | Sandbox + Speculative Computation + LRU Cache |
-| v2 | AI Simulation + Repair Plan |
-| v3 | Production-ready 永続化 + API |
+- 実装状況・次のステップ: [roadmap.md](../roadmap.md)
+- 理論的背景: [theory/charter.md](../theory/charter.md)

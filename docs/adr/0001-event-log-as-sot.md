@@ -56,4 +56,4 @@ $$
 
 - [Event Sourcing (Fowler)](https://martinfowler.com/eaaDev/EventSourcing.html)
 - [Kafka Log Compaction](https://docs.confluent.io/kafka/design/log_compaction.html)
-- [charter-v0.3-final.md](../../theory/charter-v0.3-final.md)
+- [charter.md](../theory/charter.md)

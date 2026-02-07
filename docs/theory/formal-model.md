@@ -2,7 +2,7 @@
 
 ## 数学的定義
 
-本文書は [charter-v0.3-final.md](./charter-v0.3-final.md) で論じた設計判断を、数学的に厳密な形で記述する。各定義の動機と根拠は charter を参照されたい。
+本文書は [charter.md](./charter.md) で論じた設計判断を、数学的に厳密な形で記述する。各定義の動機と根拠は charter を参照されたい。
 
 ---
 
