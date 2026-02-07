@@ -272,3 +272,52 @@ func TestIncrementalReplay(t *testing.T) {
 		t.Errorf("expected revision 2, got %d", g.Revision())
 	}
 }
+
+func TestImpactFilteredByNodeType(t *testing.T) {
+	log := NewEventLog()
+	log.Append(Event{Type: EventNodeAdded, NodeID: "a", NodeType: NodeField})
+	log.Append(Event{Type: EventNodeAdded, NodeID: "b", NodeType: NodeExpression})
+	log.Append(Event{Type: EventNodeAdded, NodeID: "c", NodeType: NodeForm})
+	log.Append(Event{Type: EventEdgeAdded, FromNode: "a", ToNode: "b", Label: LabelUses})
+	log.Append(Event{Type: EventEdgeAdded, FromNode: "b", ToNode: "c", Label: LabelUses})
+	g := ReplayLatest(log)
+
+	ctx := context.Background()
+	filter := &ImpactFilter{
+		NodeTypes: map[NodeType]bool{
+			NodeField: true,
+			NodeForm:  true,
+		},
+	}
+	res := ImpactFromEventFiltered(ctx, g, Event{Type: EventAttrUpdated, NodeID: "a"}, filter)
+	if res.Impacted["b"] {
+		t.Fatalf("expected expression node to be filtered out")
+	}
+	if !res.Impacted["c"] {
+		t.Fatalf("expected form node to be included")
+	}
+}
+
+func TestImpactFilteredByEdgeLabel(t *testing.T) {
+	log := NewEventLog()
+	log.Append(Event{Type: EventNodeAdded, NodeID: "a", NodeType: NodeField})
+	log.Append(Event{Type: EventNodeAdded, NodeID: "b", NodeType: NodeExpression})
+	log.Append(Event{Type: EventNodeAdded, NodeID: "c", NodeType: NodeForm})
+	log.Append(Event{Type: EventEdgeAdded, FromNode: "a", ToNode: "b", Label: LabelUses})
+	log.Append(Event{Type: EventEdgeAdded, FromNode: "b", ToNode: "c", Label: LabelControls})
+	g := ReplayLatest(log)
+
+	ctx := context.Background()
+	filter := &ImpactFilter{
+		EdgeLabels: map[EdgeLabel]bool{
+			LabelUses: true,
+		},
+	}
+	res := ImpactFromEventFiltered(ctx, g, Event{Type: EventAttrUpdated, NodeID: "a"}, filter)
+	if !res.Impacted["b"] {
+		t.Fatalf("expected uses edge to be traversed")
+	}
+	if res.Impacted["c"] {
+		t.Fatalf("expected controls edge to be filtered out from traversal")
+	}
+}

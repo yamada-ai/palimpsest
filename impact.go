@@ -29,10 +29,23 @@ type ImpactResult struct {
 	seedOf map[NodeID]NodeID
 }
 
+// ImpactFilter controls which edges are traversed and which nodes are included.
+// EdgeLabels filters traversal; NodeTypes filters inclusion in Impacted.
+type ImpactFilter struct {
+	EdgeLabels map[EdgeLabel]bool
+	NodeTypes  map[NodeType]bool
+}
+
 // ComputeImpact performs BFS from seeds to find all reachable nodes.
 // Impact(S) = Reach_G(S) = { v ∈ V | ∃s ∈ S, s ⤳ v }
 // ctx でキャンセルできる。
 func ComputeImpact(ctx context.Context, g *Graph, seeds []NodeID) *ImpactResult {
+	return ComputeImpactFiltered(ctx, g, seeds, nil)
+}
+
+// ComputeImpactFiltered performs BFS from seeds with optional filters.
+// EdgeLabels filters traversal; NodeTypes filters which nodes are included in Impacted.
+func ComputeImpactFiltered(ctx context.Context, g *Graph, seeds []NodeID, filter *ImpactFilter) *ImpactResult {
 	result := &ImpactResult{
 		Seeds:    seeds,
 		Impacted: make(map[NodeID]bool),
@@ -59,7 +72,9 @@ func ComputeImpact(ctx context.Context, g *Graph, seeds []NodeID) *ImpactResult 
 		}
 		visited[seed] = true
 		queue = append(queue, seed)
-		result.Impacted[seed] = true
+		if includeNodeType(g, seed, filter) {
+			result.Impacted[seed] = true
+		}
 		result.seedOf[seed] = seed
 	}
 
@@ -77,8 +92,11 @@ func ComputeImpact(ctx context.Context, g *Graph, seeds []NodeID) *ImpactResult 
 		queue = queue[1:]
 
 		// Get successors (nodes that depend on current)
-		successors := g.Successors(current)
-		for _, next := range successors {
+		for _, edge := range g.OutgoingEdges(current) {
+			if !allowEdgeLabel(edge.Label, filter) {
+				continue
+			}
+			next := edge.To
 			if visited[next] {
 				continue
 			}
@@ -87,7 +105,9 @@ func ComputeImpact(ctx context.Context, g *Graph, seeds []NodeID) *ImpactResult 
 			result.seedOf[next] = result.seedOf[current]
 			queue = append(queue, next)
 
-			result.Impacted[next] = true
+			if includeNodeType(g, next, filter) {
+				result.Impacted[next] = true
+			}
 		}
 	}
 
@@ -118,7 +138,30 @@ func ImpactFromEvents(ctx context.Context, g *Graph, events []Event) *ImpactResu
 	return ComputeImpact(ctx, g, seeds)
 }
 
+// ImpactFromEventFiltered computes impact for a single event with filters.
+func ImpactFromEventFiltered(ctx context.Context, g *Graph, e Event, filter *ImpactFilter) *ImpactResult {
+	return ComputeImpactFiltered(ctx, g, e.ImpactSeeds(), filter)
+}
+
+// ImpactFromEventsFiltered computes combined impact for multiple events with filters.
+func ImpactFromEventsFiltered(ctx context.Context, g *Graph, events []Event, filter *ImpactFilter) *ImpactResult {
+	seedSet := make(map[NodeID]bool)
+	for _, e := range events {
+		for _, seed := range e.ImpactSeeds() {
+			seedSet[seed] = true
+		}
+	}
+
+	seeds := make([]NodeID, 0, len(seedSet))
+	for seed := range seedSet {
+		seeds = append(seeds, seed)
+	}
+
+	return ComputeImpactFiltered(ctx, g, seeds, filter)
+}
+
 // EvidencePath returns the shortest evidence path for a node on demand.
+// NOTE: NodeType filters only affect inclusion; path may include filtered-out nodes.
 func (r *ImpactResult) EvidencePath(nodeID NodeID) (EvidencePath, bool) {
 	if !r.Impacted[nodeID] {
 		return EvidencePath{}, false
@@ -176,4 +219,22 @@ func (r *ImpactResult) Explain(nodeID NodeID) string {
 		explanation += string(node)
 	}
 	return explanation
+}
+
+func allowEdgeLabel(label EdgeLabel, filter *ImpactFilter) bool {
+	if filter == nil || len(filter.EdgeLabels) == 0 {
+		return true
+	}
+	return filter.EdgeLabels[label]
+}
+
+func includeNodeType(g *Graph, id NodeID, filter *ImpactFilter) bool {
+	if filter == nil || len(filter.NodeTypes) == 0 {
+		return true
+	}
+	nodeType, ok := g.NodeTypeOf(id)
+	if !ok {
+		return false
+	}
+	return filter.NodeTypes[nodeType]
 }

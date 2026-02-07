@@ -97,6 +97,31 @@ func (g *Graph) Successors(id NodeID) []NodeID {
 	return result
 }
 
+// OutgoingEdges returns outgoing edges for a node.
+// Returned slice is a copy and safe for read-only use.
+func (g *Graph) OutgoingEdges(id NodeID) []Edge {
+	g.mu.RLock()
+	defer g.mu.RUnlock()
+	node := g.nodes[id]
+	if node == nil {
+		return nil
+	}
+	out := make([]Edge, len(node.Outgoing))
+	copy(out, node.Outgoing)
+	return out
+}
+
+// NodeTypeOf returns the node type and whether it exists.
+func (g *Graph) NodeTypeOf(id NodeID) (NodeType, bool) {
+	g.mu.RLock()
+	defer g.mu.RUnlock()
+	node := g.nodes[id]
+	if node == nil {
+		return "", false
+	}
+	return node.Type, true
+}
+
 // Predecessors returns nodes that the given node depends on (incoming edges).
 // 依存元の参照に使う。
 func (g *Graph) Predecessors(id NodeID) []NodeID {
