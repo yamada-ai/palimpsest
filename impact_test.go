@@ -73,7 +73,10 @@ func TestBasicReplayAndImpact(t *testing.T) {
 	}
 
 	// Verify evidence path for "tax"
-	taxEvidence := result.Evidence["tax"]
+	taxEvidence, ok := result.EvidencePath("tax")
+	if !ok {
+		t.Fatalf("expected evidence path for tax")
+	}
 	expectedPath := []NodeID{"total", "tax_calc", "tax"}
 	if len(taxEvidence.Path) != len(expectedPath) {
 		t.Errorf("expected path length %d, got %d", len(expectedPath), len(taxEvidence.Path))

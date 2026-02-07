@@ -160,9 +160,9 @@ func main() {
 	}
 	impactDemo := p.ImpactFromEvent(ctx, g, subtotalChange)
 	if impactDemo.Impacted["form:order_entry"] {
-		evidence := impactDemo.Evidence["form:order_entry"]
+		path := impactDemo.Path("form:order_entry")
 		fmt.Printf("Path: ")
-		for i, node := range evidence.Path {
+		for i, node := range path {
 			if i > 0 {
 				fmt.Print(" → ")
 			}

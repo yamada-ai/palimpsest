@@ -60,7 +60,7 @@ func main() {
 func runWhy(ctx context.Context, g *p.Graph) {
 	e := p.Event{Type: p.EventAttrUpdated, NodeID: "field:order.subtotal"}
 	res := p.ImpactFromEvent(ctx, g, e)
-	path := res.Evidence["form:order_entry"].Path
+	path := res.Path("form:order_entry")
 	fmt.Println("Event: AttrUpdated field:order.subtotal")
 	fmt.Println("Why is form:order_entry impacted?")
 	fmt.Printf("  %s\n", joinPath(path))
