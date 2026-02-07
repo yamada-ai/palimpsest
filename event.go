@@ -1,6 +1,7 @@
 package palimpsest
 
-// EventType represents the type of configuration change event
+// EventType represents the type of configuration change event.
+// ここでのイベントは「最小単位の変更」を表す。
 type EventType int
 
 const (
@@ -31,7 +32,8 @@ func (e EventType) String() string {
 	}
 }
 
-// EdgeLabel represents the type of dependency relationship
+// EdgeLabel represents the type of dependency relationship.
+// provider → consumer の関係を、影響の性質に応じてラベル付けする。
 type EdgeLabel string
 
 const (
@@ -41,10 +43,12 @@ const (
 	LabelConstrains EdgeLabel = "constrains" // validation constraint
 )
 
-// NodeID is a unique identifier for a node
+// NodeID is a unique identifier for a node.
+// テナント内で一意であることを想定する。
 type NodeID string
 
-// NodeType represents the kind of configuration element
+// NodeType represents the kind of configuration element.
+// MVPで扱う構成要素の種類。
 type NodeType string
 
 const (
@@ -56,10 +60,13 @@ const (
 	NodeRole       NodeType = "Role"
 )
 
-// Attrs holds arbitrary node attributes
+// Attrs holds arbitrary node attributes.
+// Contract: values must be JSON-serializable scalars (string/number/bool) or simple arrays.
+// Do not store nested maps, slices of maps, or pointers; callers must treat values as immutable.
 type Attrs map[string]any
 
-// Event represents a single atomic change to the configuration graph
+// Event represents a single atomic change to the configuration graph.
+// イベントは自己完結的で、ログの追記のみで運用する。
 type Event struct {
 	Type EventType
 
@@ -78,9 +85,8 @@ type Event struct {
 	TxMeta  map[string]string
 }
 
-// Seeds extracts the impact seeds from an event
-// Following the spec: Impact Seeds = v only (target of edge)
-// Validation Seeds = both endpoints
+// Seeds extracts the impact seeds from an event.
+// 仕様: Impact Seeds = 基本は consumer (ToNode)、Validation Seeds = 両端。
 func (e Event) ImpactSeeds() []NodeID {
 	switch e.Type {
 	case EventNodeAdded, EventNodeRemoved, EventAttrUpdated:
@@ -99,7 +105,8 @@ func (e Event) ImpactSeeds() []NodeID {
 	}
 }
 
-// ValidationSeeds returns both endpoints for constraint checking
+// ValidationSeeds returns both endpoints for constraint checking.
+// 参照整合性などの局所検査に使う。
 func (e Event) ValidationSeeds() []NodeID {
 	switch e.Type {
 	case EventNodeAdded, EventNodeRemoved, EventAttrUpdated:
@@ -113,7 +120,8 @@ func (e Event) ValidationSeeds() []NodeID {
 	}
 }
 
-// EventLog is an append-only sequence of events
+// EventLog is an append-only sequence of events.
+// Source of Truth として扱う。
 type EventLog struct {
 	events []Event
 }
@@ -123,7 +131,8 @@ func NewEventLog() *EventLog {
 	return &EventLog{events: make([]Event, 0)}
 }
 
-// Append adds an event to the log and returns its offset (revision)
+// Append adds an event to the log and returns its offset (revision).
+// Revision はログ内オフセットとして扱う。
 func (l *EventLog) Append(e Event) int {
 	l.events = append(l.events, e)
 	return len(l.events) - 1

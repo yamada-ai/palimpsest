@@ -2,14 +2,16 @@ package palimpsest
 
 import "sync"
 
-// Edge represents a labeled directed edge in the graph
+// Edge represents a labeled directed edge in the graph.
+// provider → consumer の向きで保持する。
 type Edge struct {
 	From  NodeID
 	To    NodeID
 	Label EdgeLabel
 }
 
-// Node represents a configuration element in the graph
+// Node represents a configuration element in the graph.
+// Outgoing は「このノードに依存するノード群」。
 type Node struct {
 	ID       NodeID
 	Type     NodeType
@@ -18,8 +20,8 @@ type Node struct {
 	Incoming []Edge // edges where this node is the consumer (to)
 }
 
-// Graph represents the configuration state at a given revision
-// Thread-safe for concurrent read access during impact computation
+// Graph represents the configuration state at a given revision.
+// Impact計算中の並行読み取りを想定し、読み取りはRLockで守る。
 type Graph struct {
 	mu       sync.RWMutex
 	nodes    map[NodeID]*Node
@@ -41,11 +43,16 @@ func (g *Graph) Revision() int {
 	return g.revision
 }
 
-// GetNode returns a node by ID (nil if not found)
+// GetNode returns a defensive copy of the node by ID (nil if not found).
+// 呼び出し側の無ロック変更を防ぐためコピーを返す。
 func (g *Graph) GetNode(id NodeID) *Node {
 	g.mu.RLock()
 	defer g.mu.RUnlock()
-	return g.nodes[id]
+	node := g.nodes[id]
+	if node == nil {
+		return nil
+	}
+	return cloneNode(node)
 }
 
 // HasNode checks if a node exists
@@ -74,8 +81,8 @@ func (g *Graph) AllNodeIDs() []NodeID {
 	return ids
 }
 
-// Successors returns nodes that depend on the given node (outgoing edges)
-// These are the nodes that will be affected by changes to id
+// Successors returns nodes that depend on the given node (outgoing edges).
+// 変更の影響はこの順方向に伝播する。
 func (g *Graph) Successors(id NodeID) []NodeID {
 	g.mu.RLock()
 	defer g.mu.RUnlock()
@@ -90,7 +97,8 @@ func (g *Graph) Successors(id NodeID) []NodeID {
 	return result
 }
 
-// Predecessors returns nodes that the given node depends on (incoming edges)
+// Predecessors returns nodes that the given node depends on (incoming edges).
+// 依存元の参照に使う。
 func (g *Graph) Predecessors(id NodeID) []NodeID {
 	g.mu.RLock()
 	defer g.mu.RUnlock()
@@ -189,6 +197,27 @@ func (g *Graph) setRevision(rev int) {
 	g.mu.Lock()
 	defer g.mu.Unlock()
 	g.revision = rev
+}
+
+func cloneNode(src *Node) *Node {
+	if src == nil {
+		return nil
+	}
+	attrs := make(Attrs, len(src.Attrs))
+	for k, v := range src.Attrs {
+		attrs[k] = v
+	}
+	outgoing := make([]Edge, len(src.Outgoing))
+	copy(outgoing, src.Outgoing)
+	incoming := make([]Edge, len(src.Incoming))
+	copy(incoming, src.Incoming)
+	return &Node{
+		ID:       src.ID,
+		Type:     src.Type,
+		Attrs:    attrs,
+		Outgoing: outgoing,
+		Incoming: incoming,
+	}
 }
 
 // Helper functions for edge removal

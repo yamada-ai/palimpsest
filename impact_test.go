@@ -11,6 +11,7 @@ import (
 // 3. Compute impact from event
 // 4. Verify evidence paths
 func TestBasicReplayAndImpact(t *testing.T) {
+	// 基本フロー: EventLog → Replay → Impact → Evidence の整合性を確認する
 	// Build a simple dependency graph:
 	// Entity "Order" -> Field "total" -> Expression "tax_calc" -> Field "tax"
 	//                                                          -> Field "subtotal"
@@ -93,6 +94,7 @@ func TestBasicReplayAndImpact(t *testing.T) {
 }
 
 func TestEdgeSeedsForControlLabel(t *testing.T) {
+	// controls の場合は両端がImpact Seedsに含まれる
 	// When label is "controls", both endpoints should be in ImpactSeeds
 	e := Event{
 		Type:     EventEdgeAdded,
@@ -116,6 +118,7 @@ func TestEdgeSeedsForControlLabel(t *testing.T) {
 }
 
 func TestEdgeSeedsForUsesLabel(t *testing.T) {
+	// uses の場合は consumer(ToNode) だけがImpact Seedsに含まれる
 	// When label is "uses", only ToNode should be in ImpactSeeds
 	e := Event{
 		Type:     EventEdgeAdded,
@@ -140,6 +143,7 @@ func TestEdgeSeedsForUsesLabel(t *testing.T) {
 }
 
 func TestCancellation(t *testing.T) {
+	// ctxキャンセルでImpact計算が中断される
 	// Build a larger graph to test cancellation
 	log := NewEventLog()
 
@@ -166,6 +170,7 @@ func TestCancellation(t *testing.T) {
 }
 
 func TestValidationDanglingEdge(t *testing.T) {
+	// Dangling edge 検出の基本挙動を確認する
 	// Test 1: Normal graph should be valid
 	log := NewEventLog()
 	log.Append(Event{Type: EventNodeAdded, NodeID: "a", NodeType: NodeField})
@@ -210,6 +215,7 @@ func TestValidationDanglingEdge(t *testing.T) {
 }
 
 func TestTransactionMarker(t *testing.T) {
+	// TxMarker はグラフ状態に影響しない（PoCではno-op）
 	log := NewEventLog()
 
 	log.Append(Event{Type: EventNodeAdded, NodeID: "a", NodeType: NodeField})
@@ -238,6 +244,7 @@ func TestTransactionMarker(t *testing.T) {
 }
 
 func TestIncrementalReplay(t *testing.T) {
+	// IncrementalReplay で差分適用できることを確認する
 	log := NewEventLog()
 
 	log.Append(Event{Type: EventNodeAdded, NodeID: "a", NodeType: NodeField})

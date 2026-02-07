@@ -2,7 +2,7 @@ package palimpsest
 
 import "context"
 
-// EvidencePath represents a path from a seed to an impacted node
+// EvidencePath represents a path from a seed to an impacted node.
 // π(s → x) = (s = v_0, v_1, ..., v_k = x)
 type EvidencePath struct {
 	Seed   NodeID
@@ -10,7 +10,8 @@ type EvidencePath struct {
 	Path   []NodeID // includes both seed and target
 }
 
-// ImpactResult contains the result of impact analysis
+// ImpactResult contains the result of impact analysis.
+// Impactは情報提供であり、ブロック判定はValidationの責務。
 type ImpactResult struct {
 	// Seeds that initiated the analysis
 	Seeds []NodeID
@@ -28,10 +29,9 @@ type ImpactResult struct {
 	Cancelled bool
 }
 
-// ComputeImpact performs BFS from seeds to find all reachable nodes
+// ComputeImpact performs BFS from seeds to find all reachable nodes.
 // Impact(S) = Reach_G(S) = { v ∈ V | ∃s ∈ S, s ⤳ v }
-//
-// Uses context for cancellation support
+// ctx でキャンセルできる。
 func ComputeImpact(ctx context.Context, g *Graph, seeds []NodeID) *ImpactResult {
 	result := &ImpactResult{
 		Seeds:    seeds,
@@ -44,7 +44,7 @@ func ComputeImpact(ctx context.Context, g *Graph, seeds []NodeID) *ImpactResult 
 		return result
 	}
 
-	// BFS state
+	// BFS state（最短パスの親を保持）
 	visited := make(map[NodeID]bool)
 	parent := make(map[NodeID]NodeID)  // for reconstructing paths
 	seedOf := make(map[NodeID]NodeID)  // which seed reached this node
@@ -101,7 +101,8 @@ func ComputeImpact(ctx context.Context, g *Graph, seeds []NodeID) *ImpactResult 
 	return result
 }
 
-// buildEvidencePath reconstructs the path from seed to target using parent pointers
+// buildEvidencePath reconstructs the path from seed to target using parent pointers.
+// BFSの親参照を使って最短パスを復元する。
 func buildEvidencePath(seed, target NodeID, parent map[NodeID]NodeID) EvidencePath {
 	// Build path in reverse
 	path := []NodeID{target}
@@ -123,12 +124,14 @@ func buildEvidencePath(seed, target NodeID, parent map[NodeID]NodeID) EvidencePa
 	}
 }
 
-// ImpactFromEvent computes impact for a single event
+// ImpactFromEvent computes impact for a single event.
+// 変更イベントから seeds を引き、影響範囲を計算する。
 func ImpactFromEvent(ctx context.Context, g *Graph, e Event) *ImpactResult {
 	return ComputeImpact(ctx, g, e.ImpactSeeds())
 }
 
-// ImpactFromEvents computes combined impact for multiple events
+// ImpactFromEvents computes combined impact for multiple events.
+// 複数イベントの seeds を集合化して一度だけBFSする。
 func ImpactFromEvents(ctx context.Context, g *Graph, events []Event) *ImpactResult {
 	seedSet := make(map[NodeID]bool)
 	for _, e := range events {
@@ -145,7 +148,8 @@ func ImpactFromEvents(ctx context.Context, g *Graph, events []Event) *ImpactResu
 	return ComputeImpact(ctx, g, seeds)
 }
 
-// Explain returns a human-readable explanation of why a node is impacted
+// Explain returns a human-readable explanation of why a node is impacted.
+// 影響理由（証拠パス）を簡潔に返す。
 func (r *ImpactResult) Explain(nodeID NodeID) string {
 	evidence, ok := r.Evidence[nodeID]
 	if !ok {
