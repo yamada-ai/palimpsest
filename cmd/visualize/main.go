@@ -116,6 +116,7 @@ func runScale(ctx context.Context) {
 func runRepair(ctx context.Context, g *p.Graph) {
 	e := p.Event{Type: p.EventAttrUpdated, NodeID: "field:order.subtotal", Attrs: p.Attrs{"type": "decimal"}}
 	plan := p.ComputeRepairPlan(ctx, g, e)
+	planTx := p.ComputeRepairPlanTx(ctx, g, e)
 	fmt.Printf("Event: AttrUpdated field:order.subtotal\n")
 	fmt.Printf("Summary: %s\n", plan.Summary)
 	for _, s := range plan.Suggestions {
@@ -123,6 +124,11 @@ func runRepair(ctx context.Context, g *p.Graph) {
 		if s.Evidence != "" {
 			fmt.Printf("      %s\n", s.Evidence)
 		}
+	}
+	fmt.Printf("Proposed fixes: %d actions\n", len(planTx.Actions))
+	if len(planTx.Actions) > 0 && len(planTx.Actions[0].Proposals) > 0 {
+		p0 := planTx.Actions[0].Proposals[0]
+		fmt.Printf("  e.g. %s (applyable=%v)\n", p0.Event.Type, p0.Applyable)
 	}
 }
 
