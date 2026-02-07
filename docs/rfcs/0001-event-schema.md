@@ -76,7 +76,13 @@ AttrUpdated(id: NodeID, attrs: Attrs)
 TxMarker(tx_id: string, meta: map[string]string)
 ```
 
-複数操作を論理的にグループ化。Projection はこの単位で可視性を進める。
+複数操作を論理的にグループ化。
+
+**将来の用途**:
+- Projection はこの単位で可視性を進める（途中状態を見せない）
+- Sandbox での仮想トランザクション境界
+
+**PoC での扱い**: no-op（Seeds 抽出で空を返し、Replay でスキップ）。可視性制御は将来実装。
 
 ---
 

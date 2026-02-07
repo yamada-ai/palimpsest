@@ -104,14 +104,19 @@ func (r *ImpactResult) Explain(nodeID NodeID) string
 
 ### 3.5 Validation
 
-グラフの整合性チェック。
+**イベント適用前**の整合性チェック。
 
 ```go
-func Validate(ctx context.Context, g *Graph) *ValidationResult
-func ValidateSeeds(ctx context.Context, g *Graph, seeds []NodeID) *ValidationResult
+func ValidateEvent(ctx context.Context, g *Graph, e Event) *ValidationResult
 ```
 
+**チェック内容**:
+- `EdgeAdded(u, v, l)`: 両端ノードが存在するか
+- `NodeRemoved(n)`: 参照されていないか（dangling edge を作らないか）
+
 MVP では dangling edge のみ。将来拡張で必須制約、SCC 閾値など。
+
+**重要**: Validation は適用前に行い、不正なイベントを拒否する。適用後のグラフには dangling edge が存在しないことを保証する。
 
 ---
 
@@ -124,6 +129,8 @@ MVP では dangling edge のみ。将来拡張で必須制約、SCC 閾値など
 | `AttrUpdated(n)` | $\{n\}$ | $\{n\}$ |
 | `EdgeAdded(u,v,uses/derives)` | $\{v\}$ | $\{u,v\}$ |
 | `EdgeAdded(u,v,controls/constrains)` | $\{u,v\}$ | $\{u,v\}$ |
+| `EdgeRemoved(u,v,uses/derives)` | $\{v\}$ | $\{u,v\}$ |
+| `EdgeRemoved(u,v,controls/constrains)` | $\{u,v\}$ | $\{u,v\}$ |
 | `TxMarker` | $\emptyset$ | $\emptyset$ |
 
 ---

@@ -175,13 +175,15 @@ $$
 $$
 \text{Seeds}_I(e) = \begin{cases}
 \{n\} & e \in \{\texttt{NodeAdded}(n), \texttt{NodeRemoved}(n), \texttt{AttrUpdated}(n)\} \\[6pt]
-\{v\} & e = \texttt{EdgeAdded}(u, v, l),\ l \in \{\texttt{uses}, \texttt{derives}\} \\[6pt]
-\{u, v\} & e = \texttt{EdgeAdded}(u, v, l),\ l \in \{\texttt{controls}, \texttt{constrains}\} \\[6pt]
+\{v\} & e \in \{\texttt{EdgeAdded}(u, v, l), \texttt{EdgeRemoved}(u, v, l)\},\ l \in \{\texttt{uses}, \texttt{derives}\} \\[6pt]
+\{u, v\} & e \in \{\texttt{EdgeAdded}(u, v, l), \texttt{EdgeRemoved}(u, v, l)\},\ l \in \{\texttt{controls}, \texttt{constrains}\} \\[6pt]
 \emptyset & e = \texttt{TxMarker}
 \end{cases}
 $$
 
 **ラベルによる分岐の理由**: `uses`/`derives` はデータフローであり、consumer のみが影響を受ける。`controls`/`constrains` は制御フローであり、「何を制御しているか」と「誰に制御されているか」の両方が意味を持つため両端を含める。
+
+**EdgeRemoved も同様に扱う理由**: エッジの削除は依存関係の変更であり、追加と同様に影響を及ぼす。削除された依存先は再計算が必要になる可能性がある。
 
 ### 4.4 Validation Seeds
 
@@ -245,7 +247,7 @@ $$
 
 ---
 
-## 6. 不変条件
+## 6. 不変条件と Validation
 
 ### 6.1 参照整合性
 
@@ -257,7 +259,26 @@ $$
 
 存在しないノードへの参照（dangling edge）は許可しない。
 
-### 6.2 SCC サイズ制限
+### 6.2 Validation のタイミング
+
+**Validation はイベント適用前に行う。**
+
+```
+イベント到着 → Validate(イベント, 現在のグラフ) → 適用 or 拒否
+```
+
+具体的なチェック：
+
+| イベント | チェック内容 |
+|---------|-------------|
+| `EdgeAdded(u, v, l)` | $u \in V_r \land v \in V_r$（両端が存在するか） |
+| `NodeRemoved(n)` | $\nexists (n \to v) \in E_r$（参照されていないか） |
+
+**なぜ適用前か**: 適用後にチェックしても、不正な状態が既に作られている。適用前にゲートすることで、不変条件を常に維持できる。
+
+**実装上の注意**: `Graph.addEdge` は dangling を無視してはならない。Validation が適用前に行われることを前提とするか、`addEdge` 自体がエラーを返すべき。
+
+### 6.3 SCC サイズ制限
 
 強連結成分のサイズに上限を設ける：
 

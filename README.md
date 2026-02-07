@@ -88,14 +88,17 @@ palimpsest/
 ├── cmd/demo/main.go   # デモ
 └── docs/
     ├── theory/
-    │   ├── charter-v0.3-final.md   # 理論憲章
+    │   ├── charter.md              # 理論憲章
     │   └── formal-model.md         # 形式モデル
-    ├── architecture/
-    │   ├── event-schema.md         # イベントスキーマ
-    │   └── decisions/              # ADR
-    └── specs/
-        ├── mvp.md                  # MVP 仕様
-        └── ai-ux-scenario.md       # AI UX シナリオ
+    ├── rfcs/
+    │   └── 0001-event-schema.md    # イベントスキーマ
+    ├── adr/
+    │   └── 0001-event-log-as-sot.md
+    ├── roadmap.md                  # 実装順・進捗
+    ├── specs/
+    │   └── mvp.md                  # MVP 仕様
+    └── scenarios/
+        └── ai-agent.md             # AI UX シナリオ
 ```
 
 ---
