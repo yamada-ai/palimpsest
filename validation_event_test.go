@@ -56,6 +56,32 @@ func TestValidateEventEdgeAddedMissingEndpoint(t *testing.T) {
 	}
 }
 
+func TestValidateEventEntityToEntityRequiresRelation(t *testing.T) {
+	// Entity間の直接エッジはRelationノード必須（N:Mを想定）
+	log := NewEventLog()
+	log.Append(Event{Type: EventNodeAdded, NodeID: "entity:product", NodeType: NodeEntity})
+	log.Append(Event{Type: EventNodeAdded, NodeID: "entity:tag", NodeType: NodeEntity})
+
+	g := ReplayLatest(log)
+	ctx := context.Background()
+	e := Event{Type: EventEdgeAdded, FromNode: "entity:product", ToNode: "entity:tag", Label: LabelUses}
+	result := ValidateEvent(ctx, g, e)
+
+	if result.Valid {
+		t.Fatalf("expected entity-to-entity edge to be invalid")
+	}
+	found := false
+	for _, err := range result.Errors {
+		if err.Type == "relation_required" {
+			found = true
+			break
+		}
+	}
+	if !found {
+		t.Fatalf("expected relation_required error, got %v", result.Errors)
+	}
+}
+
 func TestValidateEventEdgeRemovedMissingEdge(t *testing.T) {
 	// 存在しないエッジの削除は拒否される
 	log := NewEventLog()

@@ -225,6 +225,22 @@ func ValidateEventWith(ctx context.Context, g *Graph, e Event, validators []Vali
 				Label:    e.Label,
 				Message:  "edge endpoints must exist",
 			})
+		} else {
+			// Entity間の直接依存はRelationノード必須（uses/derivesのみ制限）
+			if e.Label == LabelUses || e.Label == LabelDerives {
+				fromType, okFrom := g.NodeTypeOf(e.FromNode)
+				toType, okTo := g.NodeTypeOf(e.ToNode)
+				if okFrom && okTo && fromType == NodeEntity && toType == NodeEntity {
+					result.Valid = false
+					result.Errors = append(result.Errors, ValidationError{
+						Type:     "relation_required",
+						FromNode: e.FromNode,
+						ToNode:   e.ToNode,
+						Label:    e.Label,
+						Message:  "entity-to-entity edges require a relation node",
+					})
+				}
+			}
 		}
 	case EventEdgeRemoved:
 		if !g.HasNode(e.FromNode) || !g.HasNode(e.ToNode) {
