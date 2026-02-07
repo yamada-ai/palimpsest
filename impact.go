@@ -19,14 +19,14 @@ type ImpactResult struct {
 	// Impacted nodes (including seeds)
 	Impacted map[NodeID]bool
 
-	// Evidence paths: for each impacted node, the shortest path from a seed
-	Evidence map[NodeID]EvidencePath
-
 	// Revision at which analysis was performed
 	Revision int
 
 	// Whether the computation was cancelled
 	Cancelled bool
+
+	parent map[NodeID]NodeID
+	seedOf map[NodeID]NodeID
 }
 
 // ComputeImpact performs BFS from seeds to find all reachable nodes.
@@ -36,8 +36,9 @@ func ComputeImpact(ctx context.Context, g *Graph, seeds []NodeID) *ImpactResult 
 	result := &ImpactResult{
 		Seeds:    seeds,
 		Impacted: make(map[NodeID]bool),
-		Evidence: make(map[NodeID]EvidencePath),
 		Revision: g.Revision(),
+		parent:   make(map[NodeID]NodeID),
+		seedOf:   make(map[NodeID]NodeID),
 	}
 
 	if len(seeds) == 0 {
@@ -46,8 +47,6 @@ func ComputeImpact(ctx context.Context, g *Graph, seeds []NodeID) *ImpactResult 
 
 	// BFS state（最短パスの親を保持）
 	visited := make(map[NodeID]bool)
-	parent := make(map[NodeID]NodeID)  // for reconstructing paths
-	seedOf := make(map[NodeID]NodeID)  // which seed reached this node
 	queue := make([]NodeID, 0, len(seeds))
 
 	// Initialize with seeds
@@ -59,14 +58,9 @@ func ComputeImpact(ctx context.Context, g *Graph, seeds []NodeID) *ImpactResult 
 			continue
 		}
 		visited[seed] = true
-		seedOf[seed] = seed
 		queue = append(queue, seed)
 		result.Impacted[seed] = true
-		result.Evidence[seed] = EvidencePath{
-			Seed:   seed,
-			Target: seed,
-			Path:   []NodeID{seed},
-		}
+		result.seedOf[seed] = seed
 	}
 
 	// BFS traversal following provider → consumer edges
@@ -89,39 +83,15 @@ func ComputeImpact(ctx context.Context, g *Graph, seeds []NodeID) *ImpactResult 
 				continue
 			}
 			visited[next] = true
-			parent[next] = current
-			seedOf[next] = seedOf[current]
+			result.parent[next] = current
+			result.seedOf[next] = result.seedOf[current]
 			queue = append(queue, next)
 
 			result.Impacted[next] = true
-			result.Evidence[next] = buildEvidencePath(seedOf[next], next, parent)
 		}
 	}
 
 	return result
-}
-
-// buildEvidencePath reconstructs the path from seed to target using parent pointers.
-// BFSの親参照を使って最短パスを復元する。
-func buildEvidencePath(seed, target NodeID, parent map[NodeID]NodeID) EvidencePath {
-	// Build path in reverse
-	path := []NodeID{target}
-	current := target
-	for current != seed {
-		current = parent[current]
-		path = append(path, current)
-	}
-
-	// Reverse to get seed → target order
-	for i, j := 0, len(path)-1; i < j; i, j = i+1, j-1 {
-		path[i], path[j] = path[j], path[i]
-	}
-
-	return EvidencePath{
-		Seed:   seed,
-		Target: target,
-		Path:   path,
-	}
 }
 
 // ImpactFromEvent computes impact for a single event.
@@ -148,10 +118,47 @@ func ImpactFromEvents(ctx context.Context, g *Graph, events []Event) *ImpactResu
 	return ComputeImpact(ctx, g, seeds)
 }
 
+// EvidencePath returns the shortest evidence path for a node on demand.
+func (r *ImpactResult) EvidencePath(nodeID NodeID) (EvidencePath, bool) {
+	if !r.Impacted[nodeID] {
+		return EvidencePath{}, false
+	}
+	seed, ok := r.seedOf[nodeID]
+	if !ok {
+		return EvidencePath{}, false
+	}
+	if seed == nodeID {
+		return EvidencePath{Seed: seed, Target: nodeID, Path: []NodeID{nodeID}}, true
+	}
+	path := []NodeID{nodeID}
+	current := nodeID
+	for current != seed {
+		parent, ok := r.parent[current]
+		if !ok {
+			return EvidencePath{}, false
+		}
+		path = append(path, parent)
+		current = parent
+	}
+	for i, j := 0, len(path)-1; i < j; i, j = i+1, j-1 {
+		path[i], path[j] = path[j], path[i]
+	}
+	return EvidencePath{Seed: seed, Target: nodeID, Path: path}, true
+}
+
+// Path returns only the node sequence for the evidence path.
+func (r *ImpactResult) Path(nodeID NodeID) []NodeID {
+	evidence, ok := r.EvidencePath(nodeID)
+	if !ok {
+		return nil
+	}
+	return evidence.Path
+}
+
 // Explain returns a human-readable explanation of why a node is impacted.
 // 影響理由（証拠パス）を簡潔に返す。
 func (r *ImpactResult) Explain(nodeID NodeID) string {
-	evidence, ok := r.Evidence[nodeID]
+	evidence, ok := r.EvidencePath(nodeID)
 	if !ok {
 		return "not impacted"
 	}
