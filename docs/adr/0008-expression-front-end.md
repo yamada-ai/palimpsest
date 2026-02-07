@@ -35,6 +35,7 @@
 | `entity:` | エンティティ（スキーマコンテナ）| `Entity`       | `$entity:products`            |
 | `expr:`   | 他の計算式の結果                | `Expression`   | `$expr:calc_tax`              |
 | `param:`  | システムパラメータ・定数        | `Param`        | `$param:tax_rate`             |
+| `rel:`    | 関係（N:M 等）に付随する属性    | `Relation`     | `$rel:order_product.quantity` |
 
 ### 2.1 予約規則
 
@@ -49,6 +50,16 @@
 - 式の中で `$entity:products` と書くこと自体は稀（通常は `$field:products.unit_price`）
 - 主な用途は **SchemaDeps の登録先**（LOOKUP の動的カラム参照など）
 - 既存の Core グラフでは `Entity --derives--> Field` の親子関係が成立済み
+
+### 2.3 rel: の役割（Relation属性参照のみ）
+
+`rel:` は **関係（Relation）ノードに付随する属性参照**のために使う。
+
+- 参照できるのは **Relation が持つ属性のみ**（例: `$rel:order_product.quantity`）
+- `rel` 自体を参照する構文は意味を持たない（`$rel:order_product` 単体は無効）
+- Relation から他ノードを横断する参照は **禁止**  
+  例: `$rel:order_product.product.name` は Resolve エラー  
+  （必要なら Relation 側に `product_name` を非正規化で保持する）
 
 ---
 
@@ -97,7 +108,7 @@ PrimaryExpr     = Ref
 
 (* --- 参照（安定ID） --- *)
 Ref             = "$" Namespace ":" QualifiedName ;
-Namespace       = "field" | "entity" | "expr" | "param" ;
+Namespace       = "field" | "entity" | "expr" | "param" | "rel" ;
 QualifiedName   = Identifier { "." Identifier } ;
 
 (* --- 引数リスト --- *)
@@ -183,6 +194,7 @@ ExactDeps に登録する。
 | 再帰        | 関数定義構文がないので構造的に不可能            |
 | `FOR`/`WHILE` | ループなし。集合操作は FILTER/COUNT で        |
 | 外部 I/O    | `HTTP`, `FETCH` なし                           |
+| `rel:` からの横断参照 | `$rel:x.y.z` のような JOIN 的参照は禁止 |
 
 ### 4.7 @dynamic（将来拡張・隔離枠）
 
@@ -235,7 +247,7 @@ NodeKind =
 
 ```
 Ref {
-  namespace:     string       // "field" | "entity" | "expr" | "param"
+  namespace:     string       // "field" | "entity" | "expr" | "param" | "rel"
   path:          []string     // ["order", "subtotal"]
   resolved_id:   NodeID?      // Resolve 後に埋まる（パース直後は nil）
   expected_type: Type?        // Typecheck 後に埋まる
@@ -344,7 +356,7 @@ type DepEntry struct {
 
 // UnresolvedRef is a reference that could not be resolved.
 type UnresolvedRef struct {
-    Namespace string   // "field", "entity", "expr", "param"
+    Namespace string   // "field", "entity", "expr", "param", "rel"
     Path      []string // ["order", "subtotal"]
     Span      Span
 }
@@ -568,7 +580,7 @@ Palimpsest の依存グラフ（ADR#0001）に式（Expression）を接続する
 ### Decision
 
 1. **参照は安定 ID のみ**（`$namespace:path` 形式）。INDIRECT / EVAL は禁止
-2. **名前空間は `field` / `entity` / `expr` / `param` の 4 種**（MVP）
+2. **名前空間は `field` / `entity` / `expr` / `param` / `rel` の 5 種**（MVP）
 3. **依存抽出は静的（AST 走査）**。`Deps_runtime ⊆ Deps_static` を保証
 4. **動的依存は over-approx**。IF は全分岐依存、LOOKUP はリテラル精密化 / 動的ワイルドカード
 5. **SchemaDeps の伝播は Seed 拡張方式**（Field の AttrUpdated で親 Entity を seed に追加）
