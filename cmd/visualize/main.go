@@ -13,7 +13,7 @@ import (
 )
 
 func main() {
-	mode := flag.String("mode", "all", "demo mode: all|why|impact|remove|scale|repair|repair-cascade")
+	mode := flag.String("mode", "all", "demo mode: all|why|impact|remove|scale|repair|repair-cascade|future")
 	depth := flag.Int("depth", 3, "impact tree depth")
 	benchNodes := flag.Int("bench-nodes", 20000, "benchmark: number of nodes")
 	benchEdges := flag.Int("bench-edges", 60000, "benchmark: number of edges")
@@ -37,6 +37,8 @@ func main() {
 		runRepair(ctx, g)
 	case "repair-cascade":
 		runRepairCascade(ctx, g)
+	case "future":
+		runFuture(ctx, g)
 	case "bench":
 		runBench(ctx, *benchNodes, *benchEdges, *benchSeed)
 	case "all":
@@ -59,7 +61,10 @@ func main() {
 		fmt.Println("(6) Repair-Cascade: applyable proposals")
 		runRepairCascade(ctx, g)
 		fmt.Println()
-		fmt.Println("(7) Bench: impact time/memory")
+		fmt.Println("(7) Future Graph: apply proposals and preview")
+		runFuture(ctx, g)
+		fmt.Println()
+		fmt.Println("(8) Bench: impact time/memory")
 		runBench(ctx, *benchNodes, *benchEdges, *benchSeed)
 	default:
 		fmt.Fprintf(os.Stderr, "unknown mode: %s\n", *mode)
@@ -150,6 +155,72 @@ func runRepairCascade(ctx context.Context, g *p.Graph) {
 	}
 }
 
+func runFuture(ctx context.Context, g *p.Graph) {
+	e := p.Event{Type: p.EventNodeRemoved, NodeID: "field:order.tax"}
+	plan := p.ComputeRepairPlanTx(ctx, g, e)
+	fmt.Printf("Event: NodeRemoved field:order.tax\n")
+	if len(plan.Actions) == 0 {
+		fmt.Printf("Summary: %s\n", plan.Summary)
+		return
+	}
+
+	events := make([]p.Event, 0, 16)
+	autoCounts := map[p.AutoLevel]int{}
+	for _, a := range plan.Actions {
+		for _, proposal := range a.Proposals {
+			if !proposal.Applyable {
+				continue
+			}
+			events = append(events, proposal.Event)
+			autoCounts[proposal.AutoLevel]++
+		}
+	}
+
+	if len(events) == 0 {
+		fmt.Println("No applyable proposals to simulate.")
+		return
+	}
+
+	fmt.Printf("Applyable proposals: %d (auto=%d review=%d manual=%d)\n",
+		len(events),
+		autoCounts[p.AutoFixable],
+		autoCounts[p.NeedsReview],
+		autoCounts[p.ManualOnly],
+	)
+
+	result := p.SimulateTx(ctx, g, events)
+	if result.Error != nil {
+		fmt.Printf("Simulation error: %v\n", result.Error)
+		return
+	}
+	if result.PreValidate != nil {
+		fmt.Printf("PreValidate: valid=%v\n", result.PreValidate.Valid)
+	}
+	if result.PostValidate != nil {
+		fmt.Printf("PostValidate: valid=%v (errors=%d)\n", result.PostValidate.Valid, len(result.PostValidate.Errors))
+	}
+	if result.PostImpact == nil {
+		return
+	}
+	fmt.Printf("Future impact: %d nodes\n", len(result.PostImpact.Impacted))
+	if len(result.PostImpact.Impacted) == 0 {
+		return
+	}
+	ids := make([]p.NodeID, 0, len(result.PostImpact.Impacted))
+	for id := range result.PostImpact.Impacted {
+		ids = append(ids, id)
+	}
+	sort.Slice(ids, func(i, j int) bool { return ids[i] < ids[j] })
+	limit := 3
+	if len(ids) < limit {
+		limit = len(ids)
+	}
+	for i := 0; i < limit; i++ {
+		id := ids[i]
+		fmt.Printf("  - %s: %s\n", id, result.PostImpact.Explain(id))
+	}
+}
+
 func runBench(ctx context.Context, nodes, edges, seed int) {
 	fmt.Printf("Bench config: nodes=%d edges=%d seed=%d\n", nodes, edges, seed)
 	log := p.NewEventLog()
@@ -164,7 +235,7 @@ func runBench(ctx context.Context, nodes, edges, seed int) {
 	// Connect i -> (i+1), and i -> (i+2) with wrap-around.
 	for i := 0; i < edges; i++ {
 		from := i % nodes
-		to := (i + 1 + (i%2)) % nodes
+		to := (i + 1 + (i % 2)) % nodes
 		log.Append(p.Event{
 			Type:     p.EventEdgeAdded,
 			FromNode: p.NodeID(fmt.Sprintf("n:%d", from)),
