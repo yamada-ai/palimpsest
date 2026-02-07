@@ -2,7 +2,7 @@
 
 ## 現在のフェーズ
 
-**PoC 完了（Go 実装）**
+**PoC 完了（Go 実装） + Phase 2 の一部先行**
 
 | ファイル | 内容 | 状態 |
 |---------|------|------|
@@ -11,6 +11,10 @@
 | `replay.go` | ログ → グラフ射影 | Done |
 | `impact.go` | BFS + 証拠パス | Done |
 | `validation.go` | Dangling検出 | Done |
+| `delta.go` | Delta適用 + Rollback | Done |
+| `simulate.go` | Pre/Apply/Postフロー | Done |
+| `snapshot.go` | Snapshot + tail replay | Done |
+| `core_bench_test.go` | Coreベンチ（Replay/Impact/Validate） | Done |
 
 ---
 

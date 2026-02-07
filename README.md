@@ -128,6 +128,7 @@ palimpsest/
 | Phase | 内容 |
 |-------|------|
 | PoC | Event Log + Replay + Impact + Validation |
+| PoC+ | Delta apply/rollback + Simulate + Snapshot + Bench |
 | v1 | Sandbox + Speculative Computation + LRU Cache |
 | v2 | AI Simulation + Repair Plan |
 | v3 | Production-ready 永続化 + API |
