@@ -20,6 +20,8 @@ func main() {
 		Attrs: p.Attrs{"name": "受注", "description": "受注管理エンティティ"}})
 	log.Append(p.Event{Type: p.EventNodeAdded, NodeID: "entity:customer", NodeType: p.NodeEntity,
 		Attrs: p.Attrs{"name": "顧客", "description": "顧客マスタ"}})
+	log.Append(p.Event{Type: p.EventNodeAdded, NodeID: "entity:product", NodeType: p.NodeEntity,
+		Attrs: p.Attrs{"name": "商品", "description": "商品マスタ"}})
 
 	// --- Fields ---
 	log.Append(p.Event{Type: p.EventNodeAdded, NodeID: "field:order.subtotal", NodeType: p.NodeField,
@@ -32,12 +34,30 @@ func main() {
 		Attrs: p.Attrs{"name": "合計", "type": "currency"}})
 	log.Append(p.Event{Type: p.EventNodeAdded, NodeID: "field:customer.name", NodeType: p.NodeField,
 		Attrs: p.Attrs{"name": "顧客名", "type": "text"}})
+	log.Append(p.Event{Type: p.EventNodeAdded, NodeID: "field:product.id", NodeType: p.NodeField,
+		Attrs: p.Attrs{"name": "商品ID", "type": "text"}})
+	log.Append(p.Event{Type: p.EventNodeAdded, NodeID: "field:product.name", NodeType: p.NodeField,
+		Attrs: p.Attrs{"name": "商品名", "type": "text"}})
+
+	// --- Relation (N:M) ---
+	log.Append(p.Event{Type: p.EventNodeAdded, NodeID: "rel:order_product", NodeType: p.NodeRelation,
+		Attrs: p.Attrs{"name": "受注明細"}})
+	log.Append(p.Event{Type: p.EventNodeAdded, NodeID: "field:order_product.order_id", NodeType: p.NodeField,
+		Attrs: p.Attrs{"name": "受注ID", "type": "text"}})
+	log.Append(p.Event{Type: p.EventNodeAdded, NodeID: "field:order_product.product_id", NodeType: p.NodeField,
+		Attrs: p.Attrs{"name": "商品ID", "type": "text"}})
+	log.Append(p.Event{Type: p.EventNodeAdded, NodeID: "field:order_product.quantity", NodeType: p.NodeField,
+		Attrs: p.Attrs{"name": "数量", "type": "number"}})
+	log.Append(p.Event{Type: p.EventNodeAdded, NodeID: "field:order_product.unit_price", NodeType: p.NodeField,
+		Attrs: p.Attrs{"name": "単価", "type": "currency"}})
 
 	// --- Expressions (computed fields) ---
 	log.Append(p.Event{Type: p.EventNodeAdded, NodeID: "expr:calc_tax", NodeType: p.NodeExpression,
 		Attrs: p.Attrs{"formula": "subtotal * tax_rate"}})
 	log.Append(p.Event{Type: p.EventNodeAdded, NodeID: "expr:calc_total", NodeType: p.NodeExpression,
 		Attrs: p.Attrs{"formula": "subtotal + tax"}})
+	log.Append(p.Event{Type: p.EventNodeAdded, NodeID: "expr:line_total", NodeType: p.NodeExpression,
+		Attrs: p.Attrs{"formula": "quantity * unit_price"}})
 
 	// --- Forms ---
 	log.Append(p.Event{Type: p.EventNodeAdded, NodeID: "form:order_entry", NodeType: p.NodeForm,
@@ -46,6 +66,8 @@ func main() {
 	// --- Lists ---
 	log.Append(p.Event{Type: p.EventNodeAdded, NodeID: "list:order_list", NodeType: p.NodeList,
 		Attrs: p.Attrs{"name": "受注一覧", "columns": []string{"subtotal", "tax", "total"}}})
+	log.Append(p.Event{Type: p.EventNodeAdded, NodeID: "list:order_lines", NodeType: p.NodeList,
+		Attrs: p.Attrs{"name": "受注明細一覧", "columns": []string{"product_id", "quantity", "line_total"}}})
 
 	// --- Roles ---
 	log.Append(p.Event{Type: p.EventNodeAdded, NodeID: "role:sales", NodeType: p.NodeRole,
@@ -58,6 +80,14 @@ func main() {
 	log.Append(p.Event{Type: p.EventEdgeAdded, FromNode: "entity:order", ToNode: "field:order.tax", Label: p.LabelDerives})
 	log.Append(p.Event{Type: p.EventEdgeAdded, FromNode: "entity:order", ToNode: "field:order.total", Label: p.LabelDerives})
 	log.Append(p.Event{Type: p.EventEdgeAdded, FromNode: "entity:customer", ToNode: "field:customer.name", Label: p.LabelDerives})
+	log.Append(p.Event{Type: p.EventEdgeAdded, FromNode: "entity:product", ToNode: "field:product.id", Label: p.LabelDerives})
+	log.Append(p.Event{Type: p.EventEdgeAdded, FromNode: "entity:product", ToNode: "field:product.name", Label: p.LabelDerives})
+
+	// Relation edges
+	log.Append(p.Event{Type: p.EventEdgeAdded, FromNode: "entity:order", ToNode: "rel:order_product", Label: p.LabelDerives})
+	log.Append(p.Event{Type: p.EventEdgeAdded, FromNode: "entity:product", ToNode: "rel:order_product", Label: p.LabelDerives})
+	log.Append(p.Event{Type: p.EventEdgeAdded, FromNode: "entity:order", ToNode: "field:order_product.order_id", Label: p.LabelConstrains})
+	log.Append(p.Event{Type: p.EventEdgeAdded, FromNode: "entity:product", ToNode: "field:order_product.product_id", Label: p.LabelConstrains})
 
 	// Expression dependencies
 	log.Append(p.Event{Type: p.EventEdgeAdded, FromNode: "field:order.subtotal", ToNode: "expr:calc_tax", Label: p.LabelUses})
@@ -66,6 +96,8 @@ func main() {
 	log.Append(p.Event{Type: p.EventEdgeAdded, FromNode: "field:order.subtotal", ToNode: "expr:calc_total", Label: p.LabelUses})
 	log.Append(p.Event{Type: p.EventEdgeAdded, FromNode: "field:order.tax", ToNode: "expr:calc_total", Label: p.LabelUses})
 	log.Append(p.Event{Type: p.EventEdgeAdded, FromNode: "expr:calc_total", ToNode: "field:order.total", Label: p.LabelDerives})
+	log.Append(p.Event{Type: p.EventEdgeAdded, FromNode: "field:order_product.quantity", ToNode: "expr:line_total", Label: p.LabelUses})
+	log.Append(p.Event{Type: p.EventEdgeAdded, FromNode: "field:order_product.unit_price", ToNode: "expr:line_total", Label: p.LabelUses})
 
 	// Form uses fields
 	log.Append(p.Event{Type: p.EventEdgeAdded, FromNode: "field:order.subtotal", ToNode: "form:order_entry", Label: p.LabelUses})
@@ -75,6 +107,8 @@ func main() {
 	log.Append(p.Event{Type: p.EventEdgeAdded, FromNode: "field:order.subtotal", ToNode: "list:order_list", Label: p.LabelUses})
 	log.Append(p.Event{Type: p.EventEdgeAdded, FromNode: "field:order.tax", ToNode: "list:order_list", Label: p.LabelUses})
 	log.Append(p.Event{Type: p.EventEdgeAdded, FromNode: "field:order.total", ToNode: "list:order_list", Label: p.LabelUses})
+	log.Append(p.Event{Type: p.EventEdgeAdded, FromNode: "field:order_product.quantity", ToNode: "list:order_lines", Label: p.LabelUses})
+	log.Append(p.Event{Type: p.EventEdgeAdded, FromNode: "expr:line_total", ToNode: "list:order_lines", Label: p.LabelDerives})
 
 	// Role controls form access
 	log.Append(p.Event{Type: p.EventEdgeAdded, FromNode: "role:sales", ToNode: "form:order_entry", Label: p.LabelControls})
@@ -150,6 +184,23 @@ func main() {
 
 	impact3 := p.ImpactFromEvent(ctx, g, edgeEvent)
 	fmt.Printf("Impact: %d nodes affected\n", len(impact3.Impacted))
+	fmt.Println()
+
+	// --- Scenario 4: Relation attribute change ---
+	fmt.Println("=== Scenario 4: リレーション属性の変更 ===")
+	relEvent := p.Event{
+		Type:   p.EventAttrUpdated,
+		NodeID: "field:order_product.quantity",
+		Attrs:  p.Attrs{"type": "decimal"},
+	}
+	fmt.Printf("Event: %s on %s\n", relEvent.Type, relEvent.NodeID)
+
+	impact4 := p.ImpactFromEvent(ctx, g, relEvent)
+	fmt.Printf("Impact: %d nodes affected\n", len(impact4.Impacted))
+	fmt.Println("Affected nodes:")
+	for nodeID := range impact4.Impacted {
+		fmt.Printf("  - %s: %s\n", nodeID, impact4.Explain(nodeID))
+	}
 	fmt.Println()
 
 	// --- Evidence Path Demo ---
