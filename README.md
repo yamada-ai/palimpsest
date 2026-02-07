@@ -30,7 +30,8 @@ Palimpsest はローコード SaaS の設定変更問題を、ビルドシステ
 ```bash
 go test -v        # テスト実行
 go run ./cmd/demo # デモ実行
-go run ./cmd/visualize -mode all # 可視化デモ（Why/Impact/Remove/Scale）
+go run ./cmd/visualize -mode all # 可視化デモ（Why/Impact/Remove/Scale/Bench）
+go run ./cmd/visualize -mode bench -bench-nodes 50000 -bench-edges 150000
 ```
 
 ### 出力例

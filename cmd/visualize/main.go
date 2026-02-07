@@ -5,7 +5,9 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"runtime"
 	"sort"
+	"time"
 
 	p "github.com/user/palimpsest"
 )
@@ -13,6 +15,9 @@ import (
 func main() {
 	mode := flag.String("mode", "all", "demo mode: all|why|impact|remove|scale")
 	depth := flag.Int("depth", 3, "impact tree depth")
+	benchNodes := flag.Int("bench-nodes", 20000, "benchmark: number of nodes")
+	benchEdges := flag.Int("bench-edges", 60000, "benchmark: number of edges")
+	benchSeed := flag.Int("bench-seed", 42, "benchmark: seed index")
 	flag.Parse()
 
 	log := buildSampleLog()
@@ -28,6 +33,8 @@ func main() {
 		runEdgeRemoval(ctx, g)
 	case "scale":
 		runScale(ctx)
+	case "bench":
+		runBench(ctx, *benchNodes, *benchEdges, *benchSeed)
 	case "all":
 		fmt.Println("=== Palimpsest Visual Demo ===")
 		fmt.Println("(1) Why: evidence path")
@@ -41,6 +48,9 @@ func main() {
 		fmt.Println()
 		fmt.Println("(4) Scale: impact stays local")
 		runScale(ctx)
+		fmt.Println()
+		fmt.Println("(5) Bench: impact time/memory")
+		runBench(ctx, *benchNodes, *benchEdges, *benchSeed)
 	default:
 		fmt.Fprintf(os.Stderr, "unknown mode: %s\n", *mode)
 		os.Exit(1)
@@ -96,6 +106,52 @@ func runScale(ctx context.Context) {
 	res := p.ImpactFromEvent(ctx, g, e)
 	fmt.Printf("Large graph: nodes=%d, impacted=%d\n", g.NodeCount(), len(res.Impacted))
 	fmt.Printf("Example evidence: %s\n", res.Explain("expr:b42"))
+}
+
+func runBench(ctx context.Context, nodes, edges, seed int) {
+	fmt.Printf("Bench config: nodes=%d edges=%d seed=%d\n", nodes, edges, seed)
+	log := p.NewEventLog()
+
+	// Add nodes
+	for i := 0; i < nodes; i++ {
+		id := p.NodeID(fmt.Sprintf("n:%d", i))
+		log.Append(p.Event{Type: p.EventNodeAdded, NodeID: id, NodeType: p.NodeField})
+	}
+
+	// Add edges (simple deterministic pattern)
+	// Connect i -> (i+1), and i -> (i+2) with wrap-around.
+	for i := 0; i < edges; i++ {
+		from := i % nodes
+		to := (i + 1 + (i%2)) % nodes
+		log.Append(p.Event{
+			Type:     p.EventEdgeAdded,
+			FromNode: p.NodeID(fmt.Sprintf("n:%d", from)),
+			ToNode:   p.NodeID(fmt.Sprintf("n:%d", to)),
+			Label:    p.LabelUses,
+		})
+	}
+
+	start := time.Now()
+	g := p.ReplayLatest(log)
+	replayDur := time.Since(start)
+
+	seedID := p.NodeID(fmt.Sprintf("n:%d", seed%nodes))
+	event := p.Event{Type: p.EventAttrUpdated, NodeID: seedID, Attrs: p.Attrs{"touched": true}}
+
+	var ms runtime.MemStats
+	runtime.ReadMemStats(&ms)
+	memBefore := ms.Alloc
+
+	start = time.Now()
+	res := p.ImpactFromEvent(ctx, g, event)
+	impactDur := time.Since(start)
+
+	runtime.ReadMemStats(&ms)
+	memAfter := ms.Alloc
+
+	fmt.Printf("Replay: %s\n", replayDur)
+	fmt.Printf("Impact: %s (impacted=%d)\n", impactDur, len(res.Impacted))
+	fmt.Printf("Memory delta: %.2f MB\n", float64(memAfter-memBefore)/1024.0/1024.0)
 }
 
 func printImpactTree(g *p.Graph, seeds []p.NodeID, maxDepth int) {
