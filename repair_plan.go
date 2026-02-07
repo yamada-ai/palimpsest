@@ -3,6 +3,7 @@ package palimpsest
 import (
 	"context"
 	"sort"
+	"strings"
 )
 
 type Severity int
@@ -55,6 +56,10 @@ func ComputeRepairPlanFromImpact(ctx context.Context, g *Graph, e Event, impact 
 	plan := &RepairPlan{Event: e}
 	if impact == nil {
 		plan.Summary = "no impact result"
+		return plan
+	}
+	if impact.Cancelled {
+		plan.Summary = "cancelled"
 		return plan
 	}
 
@@ -151,5 +156,45 @@ func buildSummary(suggestions []RepairSuggestion) string {
 	for _, s := range suggestions {
 		counts[s.Severity]++
 	}
-	return "repair suggestions generated"
+	return formatSummary(counts)
+}
+
+func formatSummary(counts map[Severity]int) string {
+	if len(counts) == 0 {
+		return "repair suggestions generated"
+	}
+	order := []Severity{SeverityCritical, SeverityHigh, SeverityMedium, SeverityLow}
+	parts := make([]string, 0, len(order))
+	for _, sev := range order {
+		if n, ok := counts[sev]; ok && n > 0 {
+			parts = append(parts, sev.String()+":"+itoa(n))
+		}
+	}
+	if len(parts) == 0 {
+		return "repair suggestions generated"
+	}
+	return "repair suggestions generated (" + strings.Join(parts, ", ") + ")"
+}
+
+func itoa(n int) string {
+	if n == 0 {
+		return "0"
+	}
+	neg := false
+	if n < 0 {
+		neg = true
+		n = -n
+	}
+	buf := [20]byte{}
+	i := len(buf)
+	for n > 0 {
+		i--
+		buf[i] = byte('0' + n%10)
+		n /= 10
+	}
+	if neg {
+		i--
+		buf[i] = '-'
+	}
+	return string(buf[i:])
 }
