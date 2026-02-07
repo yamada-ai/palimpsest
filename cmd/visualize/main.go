@@ -133,7 +133,7 @@ func runRepair(ctx context.Context, g *p.Graph) {
 	fmt.Printf("Proposed fixes: %d actions\n", len(planTx.Actions))
 	if len(planTx.Actions) > 0 && len(planTx.Actions[0].Proposals) > 0 {
 		p0 := planTx.Actions[0].Proposals[0]
-		fmt.Printf("  e.g. %s (applyable=%v)\n", p0.Event.Type, p0.Applyable)
+		fmt.Printf("  e.g. %s (applyable=%v, auto=%s)\n", p0.Event.Type, p0.Applyable, p0.AutoLevel.String())
 	}
 }
 
@@ -145,7 +145,7 @@ func runRepairCascade(ctx context.Context, g *p.Graph) {
 	for _, a := range plan.Actions {
 		fmt.Printf("  - [%s] %s: %s\n", a.Severity.String(), a.NodeID, a.Title)
 		for _, p := range a.Proposals {
-			fmt.Printf("      %s (applyable=%v) %s\n", p.Event.Type, p.Applyable, p.Note)
+			fmt.Printf("      %s (applyable=%v, auto=%s) %s\n", p.Event.Type, p.Applyable, p.AutoLevel.String(), p.Note)
 		}
 	}
 }
@@ -193,7 +193,11 @@ func runBench(ctx context.Context, nodes, edges, seed int) {
 
 	fmt.Printf("Replay: %s\n", replayDur)
 	fmt.Printf("Impact: %s (impacted=%d)\n", impactDur, len(res.Impacted))
-	fmt.Printf("Memory delta: %.2f MB\n", float64(memAfter-memBefore)/1024.0/1024.0)
+	memDelta := int64(memAfter) - int64(memBefore)
+	if memDelta < 0 {
+		memDelta = 0
+	}
+	fmt.Printf("Memory delta: %.2f MB\n", float64(memDelta)/1024.0/1024.0)
 }
 
 func printImpactTree(g *p.Graph, seeds []p.NodeID, maxDepth int) {
