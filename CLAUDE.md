@@ -56,7 +56,10 @@ docs/
 ├── rfcs/
 │   └── 0001-event-schema.md
 ├── adr/
-│   └── 0001-event-log-as-sot.md
+│   ├── 0001-event-log-as-sot.md
+│   ├── 0002-revision-and-simulation.md
+│   ├── 0003-before-after-graph-selection.md
+│   └── 0004-validation-responsibility.md
 ├── roadmap.md            # 実装順・進捗
 ├── specs/
 │   └── mvp.md

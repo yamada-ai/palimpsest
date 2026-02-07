@@ -199,6 +199,20 @@ func (g *Graph) setRevision(rev int) {
 	g.revision = rev
 }
 
+// Clone returns a deep copy of the graph suitable for speculative updates.
+func (g *Graph) Clone() *Graph {
+	g.mu.RLock()
+	defer g.mu.RUnlock()
+	nodes := make(map[NodeID]*Node, len(g.nodes))
+	for id, node := range g.nodes {
+		nodes[id] = cloneNode(node)
+	}
+	return &Graph{
+		nodes:    nodes,
+		revision: g.revision,
+	}
+}
+
 func cloneNode(src *Node) *Node {
 	if src == nil {
 		return nil
