@@ -111,6 +111,20 @@ func (g *Graph) OutgoingEdges(id NodeID) []Edge {
 	return out
 }
 
+// IncomingEdges returns incoming edges for a node.
+// Returned slice is a copy and safe for read-only use.
+func (g *Graph) IncomingEdges(id NodeID) []Edge {
+	g.mu.RLock()
+	defer g.mu.RUnlock()
+	node := g.nodes[id]
+	if node == nil {
+		return nil
+	}
+	in := make([]Edge, len(node.Incoming))
+	copy(in, node.Incoming)
+	return in
+}
+
 // NodeTypeOf returns the node type and whether it exists.
 func (g *Graph) NodeTypeOf(id NodeID) (NodeType, bool) {
 	g.mu.RLock()

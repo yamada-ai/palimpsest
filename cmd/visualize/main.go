@@ -13,7 +13,7 @@ import (
 )
 
 func main() {
-	mode := flag.String("mode", "all", "demo mode: all|why|impact|remove|scale|repair")
+	mode := flag.String("mode", "all", "demo mode: all|why|impact|remove|scale|repair|repair-cascade")
 	depth := flag.Int("depth", 3, "impact tree depth")
 	benchNodes := flag.Int("bench-nodes", 20000, "benchmark: number of nodes")
 	benchEdges := flag.Int("bench-edges", 60000, "benchmark: number of edges")
@@ -35,6 +35,8 @@ func main() {
 		runScale(ctx)
 	case "repair":
 		runRepair(ctx, g)
+	case "repair-cascade":
+		runRepairCascade(ctx, g)
 	case "bench":
 		runBench(ctx, *benchNodes, *benchEdges, *benchSeed)
 	case "all":
@@ -54,7 +56,10 @@ func main() {
 		fmt.Println("(5) Repair: suggestions")
 		runRepair(ctx, g)
 		fmt.Println()
-		fmt.Println("(6) Bench: impact time/memory")
+		fmt.Println("(6) Repair-Cascade: applyable proposals")
+		runRepairCascade(ctx, g)
+		fmt.Println()
+		fmt.Println("(7) Bench: impact time/memory")
 		runBench(ctx, *benchNodes, *benchEdges, *benchSeed)
 	default:
 		fmt.Fprintf(os.Stderr, "unknown mode: %s\n", *mode)
@@ -129,6 +134,19 @@ func runRepair(ctx context.Context, g *p.Graph) {
 	if len(planTx.Actions) > 0 && len(planTx.Actions[0].Proposals) > 0 {
 		p0 := planTx.Actions[0].Proposals[0]
 		fmt.Printf("  e.g. %s (applyable=%v)\n", p0.Event.Type, p0.Applyable)
+	}
+}
+
+func runRepairCascade(ctx context.Context, g *p.Graph) {
+	e := p.Event{Type: p.EventNodeRemoved, NodeID: "field:order.tax"}
+	plan := p.ComputeRepairPlanTx(ctx, g, e)
+	fmt.Printf("Event: NodeRemoved field:order.tax\n")
+	fmt.Printf("Summary: %s\n", plan.Summary)
+	for _, a := range plan.Actions {
+		fmt.Printf("  - [%s] %s: %s\n", a.Severity.String(), a.NodeID, a.Title)
+		for _, p := range a.Proposals {
+			fmt.Printf("      %s (applyable=%v) %s\n", p.Event.Type, p.Applyable, p.Note)
+		}
 	}
 }
 

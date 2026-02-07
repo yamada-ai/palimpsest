@@ -26,3 +26,25 @@ func TestRepairPlanTxProposals(t *testing.T) {
 		t.Fatalf("expected proposals to be non-applyable placeholders")
 	}
 }
+
+func TestRepairPlanTxCascadeDelete(t *testing.T) {
+	log := NewEventLog()
+	log.Append(Event{Type: EventNodeAdded, NodeID: "field:a", NodeType: NodeField})
+	log.Append(Event{Type: EventNodeAdded, NodeID: "field:b", NodeType: NodeField})
+	log.Append(Event{Type: EventEdgeAdded, FromNode: "field:a", ToNode: "field:b", Label: LabelUses})
+
+	g := ReplayLatest(log)
+	ctx := context.Background()
+	e := Event{Type: EventNodeRemoved, NodeID: "field:b"}
+	plan := ComputeRepairPlanTx(ctx, g, e)
+
+	if len(plan.Actions) != 1 {
+		t.Fatalf("expected one cascade action")
+	}
+	if len(plan.Actions[0].Proposals) < 2 {
+		t.Fatalf("expected edge removal + node removal proposals")
+	}
+	if !plan.Actions[0].Proposals[0].Applyable {
+		t.Fatalf("expected cascade proposals to be applyable")
+	}
+}

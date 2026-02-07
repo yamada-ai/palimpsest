@@ -51,6 +51,23 @@ func ComputeRepairPlanTxFromImpact(ctx context.Context, g *Graph, e Event, impac
 		return plan
 	}
 
+	// Special case: propose cascade delete if the event is NodeRemoved and has impact.
+	if e.Type == EventNodeRemoved {
+		if len(impact.Impacted) == 0 {
+			plan.Summary = "no impacted nodes (excluding seeds)"
+			return plan
+		}
+		if !impact.Impacted[e.NodeID] {
+			// If the target isn't in impact, skip cascade proposals.
+			return plan
+		}
+		if actions := proposeCascadeDelete(g, e.NodeID); len(actions) > 0 {
+			plan.Actions = actions
+			plan.Summary = buildSummaryFromActions(actions)
+			return plan
+		}
+	}
+
 	seedSet := make(map[NodeID]bool)
 	for _, s := range impact.Seeds {
 		seedSet[s] = true
@@ -95,6 +112,54 @@ func ComputeRepairPlanTxFromImpact(ctx context.Context, g *Graph, e Event, impac
 	plan.Actions = actions
 	plan.Summary = buildSummaryFromActions(actions)
 	return plan
+}
+
+func proposeCascadeDelete(g *Graph, nodeID NodeID) []RepairAction {
+	if g == nil {
+		return nil
+	}
+	if !g.HasNode(nodeID) {
+		return nil
+	}
+	edges := append(g.IncomingEdges(nodeID), g.OutgoingEdges(nodeID)...)
+	if len(edges) == 0 {
+		return nil
+	}
+	sort.Slice(edges, func(i, j int) bool {
+		if edges[i].From != edges[j].From {
+			return edges[i].From < edges[j].From
+		}
+		if edges[i].To != edges[j].To {
+			return edges[i].To < edges[j].To
+		}
+		return edges[i].Label < edges[j].Label
+	})
+	proposals := make([]ProposedEvent, 0, len(edges)+1)
+	for _, edge := range edges {
+		proposals = append(proposals, ProposedEvent{
+			Event:     Event{Type: EventEdgeRemoved, FromNode: edge.From, ToNode: edge.To, Label: edge.Label},
+			Note:      "参照エッジを削除",
+			Applyable: true,
+		})
+	}
+	proposals = append(proposals, ProposedEvent{
+		Event:     Event{Type: EventNodeRemoved, NodeID: nodeID},
+		Note:      "依存解除後に削除",
+		Applyable: true,
+	})
+
+	nodeType, ok := g.NodeTypeOf(nodeID)
+	if !ok {
+		nodeType = NodeField
+	}
+	return []RepairAction{{
+		NodeID:    nodeID,
+		NodeType:  nodeType,
+		Severity:  SeverityCritical,
+		Title:     "カスケード削除の提案",
+		Detail:    "参照エッジを先に削除し、その後に対象ノードを削除します",
+		Proposals: proposals,
+	}}
 }
 
 func proposeForType(nodeID NodeID, nodeType NodeType) (string, string, []ProposedEvent) {
