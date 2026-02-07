@@ -42,6 +42,30 @@ Memory delta: 9.86 MB
 
 Evidence 遅延評価により、時間・メモリが大幅に改善された。
 
+## Benchmark (Core)
+
+以下は `go test -bench . -run '^$' -benchtime 10s ./...` の結果（Apple M1）。
+Impact は seed をローテーションして CPU キャッシュ偏りを抑えている。
+
+```
+BenchmarkReplay/N10k_M30k-8                 7.57ms/op     13.8MB/op   80,083 allocs/op
+BenchmarkReplay/N50k_M150k-8                42.49ms/op    68.3MB/op   400,277 allocs/op
+BenchmarkImpact/N10k_M30k-8                 32.2µs/op     32KB/op     205 allocs/op
+BenchmarkImpact/N50k_M150k-8                275µs/op      244KB/op    894 allocs/op
+BenchmarkSimulateEvent/N10k_M30k-8          4.29ms/op     4.56MB/op   40,496 allocs/op
+BenchmarkSimulateEvent/N50k_M150k-8         37.93ms/op    22.99MB/op  202,144 allocs/op
+BenchmarkValidateEvent/N10k_M30k-8          51.5ns/op     48B/op      1 allocs/op
+BenchmarkValidateEvent/N50k_M150k-8         53.3ns/op     48B/op      1 allocs/op
+BenchmarkValidateFull/N10k_M30k-8           4.66ms/op     4.48MB/op   40,002 allocs/op
+BenchmarkValidateFull/N50k_M150k-8          44.71ms/op    22.40MB/op  200,002 allocs/op
+```
+
+### Interpretation
+
+- Impact/ValidateEvent はスケールしても非常に軽い（O(K) / 定数に近い）。
+- Replay/Simulate/ValidateFull は O(N+M) 相当のコスト。
+- 「全体検証は監査用途」「Impactは頻繁に使う」という設計が妥当であることを示す。
+
 ## Consequences
 
 ### Positive
