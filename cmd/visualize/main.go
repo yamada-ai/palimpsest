@@ -13,7 +13,7 @@ import (
 )
 
 func main() {
-	mode := flag.String("mode", "all", "demo mode: all|why|impact|remove|scale")
+	mode := flag.String("mode", "all", "demo mode: all|why|impact|remove|scale|repair")
 	depth := flag.Int("depth", 3, "impact tree depth")
 	benchNodes := flag.Int("bench-nodes", 20000, "benchmark: number of nodes")
 	benchEdges := flag.Int("bench-edges", 60000, "benchmark: number of edges")
@@ -33,6 +33,8 @@ func main() {
 		runEdgeRemoval(ctx, g)
 	case "scale":
 		runScale(ctx)
+	case "repair":
+		runRepair(ctx, g)
 	case "bench":
 		runBench(ctx, *benchNodes, *benchEdges, *benchSeed)
 	case "all":
@@ -49,7 +51,10 @@ func main() {
 		fmt.Println("(4) Scale: impact stays local")
 		runScale(ctx)
 		fmt.Println()
-		fmt.Println("(5) Bench: impact time/memory")
+		fmt.Println("(5) Repair: suggestions")
+		runRepair(ctx, g)
+		fmt.Println()
+		fmt.Println("(6) Bench: impact time/memory")
 		runBench(ctx, *benchNodes, *benchEdges, *benchSeed)
 	default:
 		fmt.Fprintf(os.Stderr, "unknown mode: %s\n", *mode)
@@ -106,6 +111,19 @@ func runScale(ctx context.Context) {
 	res := p.ImpactFromEvent(ctx, g, e)
 	fmt.Printf("Large graph: nodes=%d, impacted=%d\n", g.NodeCount(), len(res.Impacted))
 	fmt.Printf("Example evidence: %s\n", res.Explain("expr:b42"))
+}
+
+func runRepair(ctx context.Context, g *p.Graph) {
+	e := p.Event{Type: p.EventAttrUpdated, NodeID: "field:order.subtotal", Attrs: p.Attrs{"type": "decimal"}}
+	plan := p.ComputeRepairPlan(ctx, g, e)
+	fmt.Printf("Event: AttrUpdated field:order.subtotal\n")
+	fmt.Printf("Summary: %s\n", plan.Summary)
+	for _, s := range plan.Suggestions {
+		fmt.Printf("  - [%s] %s: %s\n", s.Severity.String(), s.NodeID, s.Message)
+		if s.Evidence != "" {
+			fmt.Printf("      %s\n", s.Evidence)
+		}
+	}
 }
 
 func runBench(ctx context.Context, nodes, edges, seed int) {
