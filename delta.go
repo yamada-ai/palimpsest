@@ -65,8 +65,8 @@ func ApplyEvent(g *Graph, e Event) (Delta, error) {
 		if node == nil {
 			return delta, fmt.Errorf("node does not exist: %s", e.NodeID)
 		}
-		for k, v := range e.Attrs {
-			before, _ := node.Attrs[k]
+			for k, v := range e.Attrs {
+				before := node.Attrs[k]
 			change := AttrChange{
 				NodeID:  e.NodeID,
 				Key:     k,
