@@ -48,3 +48,24 @@ func TestRepairPlanTxCascadeDelete(t *testing.T) {
 		t.Fatalf("expected cascade proposals to be applyable")
 	}
 }
+
+func TestRepairPlanTxRelationImpact(t *testing.T) {
+	// リレーション属性の変更が下流に影響し、修復提案が出ることを確認する
+	log := buildRelationLog()
+	g := ReplayLatest(log)
+
+	ctx := context.Background()
+	e := Event{Type: EventAttrUpdated, NodeID: "field:product_tag.quantity"}
+	plan := ComputeRepairPlanTx(ctx, g, e)
+
+	found := false
+	for _, a := range plan.Actions {
+		if a.NodeID == "list:tagged_products" {
+			found = true
+			break
+		}
+	}
+	if !found {
+		t.Fatalf("expected list:tagged_products to be suggested, got %v", plan.Actions)
+	}
+}

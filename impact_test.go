@@ -219,26 +219,7 @@ func TestValidationDanglingEdge(t *testing.T) {
 
 func TestRelationNodeImpact(t *testing.T) {
 	// リレーションノード経由の依存がImpact/Evidenceに出ることを確認する
-	log := NewEventLog()
-
-	log.Append(Event{Type: EventNodeAdded, NodeID: "entity:product", NodeType: NodeEntity})
-	log.Append(Event{Type: EventNodeAdded, NodeID: "entity:tag", NodeType: NodeEntity})
-	log.Append(Event{Type: EventNodeAdded, NodeID: "rel:product_tag", NodeType: NodeRelation})
-	log.Append(Event{Type: EventNodeAdded, NodeID: "field:product_tag.product_id", NodeType: NodeField})
-	log.Append(Event{Type: EventNodeAdded, NodeID: "field:product_tag.tag_id", NodeType: NodeField})
-	log.Append(Event{Type: EventNodeAdded, NodeID: "field:product_tag.quantity", NodeType: NodeField})
-	log.Append(Event{Type: EventNodeAdded, NodeID: "expr:tagged_products.filter", NodeType: NodeExpression})
-	log.Append(Event{Type: EventNodeAdded, NodeID: "list:tagged_products", NodeType: NodeList})
-
-	// 関係の構造
-	log.Append(Event{Type: EventEdgeAdded, FromNode: "entity:product", ToNode: "rel:product_tag", Label: LabelDerives})
-	log.Append(Event{Type: EventEdgeAdded, FromNode: "entity:tag", ToNode: "rel:product_tag", Label: LabelDerives})
-	log.Append(Event{Type: EventEdgeAdded, FromNode: "entity:product", ToNode: "field:product_tag.product_id", Label: LabelConstrains})
-	log.Append(Event{Type: EventEdgeAdded, FromNode: "entity:tag", ToNode: "field:product_tag.tag_id", Label: LabelConstrains})
-
-	// 依存の本体: quantity -> expr -> list
-	log.Append(Event{Type: EventEdgeAdded, FromNode: "field:product_tag.quantity", ToNode: "expr:tagged_products.filter", Label: LabelUses})
-	log.Append(Event{Type: EventEdgeAdded, FromNode: "expr:tagged_products.filter", ToNode: "list:tagged_products", Label: LabelDerives})
+	log := buildRelationLog()
 
 	g := ReplayLatest(log)
 	e := Event{Type: EventAttrUpdated, NodeID: "field:product_tag.quantity"}
