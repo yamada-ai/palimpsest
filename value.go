@@ -1,6 +1,7 @@
 package palimpsest
 
 import (
+	"errors"
 	"sort"
 	"strconv"
 	"strings"
@@ -17,6 +18,8 @@ const (
 	ValueArray
 	ValueObject
 )
+
+var ErrUnsupportedAttrValue = errors.New("unsupported Attrs value type")
 
 // Value is a JSON-like value for attributes and expression evaluation.
 // 値は不変扱い（immutable）を前提とする。
@@ -111,6 +114,69 @@ func VStrings(v []string) Value {
 		out = append(out, VString(s))
 	}
 	return ArrayValue(out)
+}
+
+// FromAny converts legacy Attrs values to Value.
+// DEPRECATED: Use Value constructors in new code.
+func FromAny(v any) (Value, error) {
+	switch x := v.(type) {
+	case nil:
+		return NullValue{}, nil
+	case Value:
+		return x, nil
+	case bool:
+		return BoolValue(x), nil
+	case int:
+		return NumberValue(float64(x)), nil
+	case int64:
+		return NumberValue(float64(x)), nil
+	case uint:
+		return NumberValue(float64(x)), nil
+	case float32:
+		return NumberValue(float64(x)), nil
+	case float64:
+		return NumberValue(x), nil
+	case string:
+		return StringValue(x), nil
+	case []string:
+		return VStrings(x), nil
+	case []Value:
+		return ArrayValue(x), nil
+	case []any:
+		out := make([]Value, 0, len(x))
+		for _, item := range x {
+			vv, err := FromAny(item)
+			if err != nil {
+				return nil, err
+			}
+			out = append(out, vv)
+		}
+		return ArrayValue(out), nil
+	case map[string]Value:
+		return ObjectValue(x), nil
+	case map[string]any:
+		out := make(map[string]Value, len(x))
+		for k, item := range x {
+			vv, err := FromAny(item)
+			if err != nil {
+				return nil, err
+			}
+			out[k] = vv
+		}
+		return ObjectValue(out), nil
+	default:
+		return nil, ErrUnsupportedAttrValue
+	}
+}
+
+// MustFromAny converts legacy values and panics on failure.
+// Use only in tests or one-off migrations.
+func MustFromAny(v any) Value {
+	out, err := FromAny(v)
+	if err != nil {
+		panic(err)
+	}
+	return out
 }
 
 // DeepCopyValue copies nested values for defensive use.
