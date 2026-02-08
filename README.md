@@ -48,7 +48,7 @@ ctx := context.Background()
 res := sb.SimulateEvent(ctx, palimpsest.Event{
     Type:   palimpsest.EventAttrUpdated,
     NodeID: "field:order.subtotal",
-    Attrs:  palimpsest.Attrs{"type": "decimal"},
+    Attrs:  palimpsest.Attrs{"type": palimpsest.VString("decimal")},
 })
 
 // PreValidate / PreImpact / PostImpact などを参照

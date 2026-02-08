@@ -103,3 +103,35 @@ func VString(v string) Value  { return StringValue(v) }
 // VArray and VObject do not copy; callers must not mutate after construction.
 func VArray(v []Value) Value           { return ArrayValue(v) }
 func VObject(v map[string]Value) Value { return ObjectValue(v) }
+
+// VStrings converts a string slice to a Value array.
+func VStrings(v []string) Value {
+	out := make([]Value, 0, len(v))
+	for _, s := range v {
+		out = append(out, VString(s))
+	}
+	return ArrayValue(out)
+}
+
+// DeepCopyValue copies nested values for defensive use.
+func DeepCopyValue(v Value) Value {
+	if v == nil {
+		return nil
+	}
+	switch x := v.(type) {
+	case ArrayValue:
+		out := make(ArrayValue, len(x))
+		for i, item := range x {
+			out[i] = DeepCopyValue(item)
+		}
+		return out
+	case ObjectValue:
+		out := make(ObjectValue, len(x))
+		for k, item := range x {
+			out[k] = DeepCopyValue(item)
+		}
+		return out
+	default:
+		return v
+	}
+}

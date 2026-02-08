@@ -18,11 +18,11 @@ func TestBasicReplayAndImpact(t *testing.T) {
 	log := NewEventLog()
 
 	// Add nodes
-	log.Append(Event{Type: EventNodeAdded, NodeID: "order", NodeType: NodeEntity, Attrs: Attrs{"name": "Order"}})
-	log.Append(Event{Type: EventNodeAdded, NodeID: "total", NodeType: NodeField, Attrs: Attrs{"name": "total", "type": "number"}})
-	log.Append(Event{Type: EventNodeAdded, NodeID: "tax_calc", NodeType: NodeExpression, Attrs: Attrs{"formula": "subtotal * 0.1"}})
-	log.Append(Event{Type: EventNodeAdded, NodeID: "tax", NodeType: NodeField, Attrs: Attrs{"name": "tax", "type": "number"}})
-	log.Append(Event{Type: EventNodeAdded, NodeID: "subtotal", NodeType: NodeField, Attrs: Attrs{"name": "subtotal", "type": "number"}})
+	log.Append(Event{Type: EventNodeAdded, NodeID: "order", NodeType: NodeEntity, Attrs: Attrs{"name": VString("Order")}})
+	log.Append(Event{Type: EventNodeAdded, NodeID: "total", NodeType: NodeField, Attrs: Attrs{"name": VString("total"), "type": VString("number")}})
+	log.Append(Event{Type: EventNodeAdded, NodeID: "tax_calc", NodeType: NodeExpression, Attrs: Attrs{"formula": VString("subtotal * 0.1")}})
+	log.Append(Event{Type: EventNodeAdded, NodeID: "tax", NodeType: NodeField, Attrs: Attrs{"name": VString("tax"), "type": VString("number")}})
+	log.Append(Event{Type: EventNodeAdded, NodeID: "subtotal", NodeType: NodeField, Attrs: Attrs{"name": VString("subtotal"), "type": VString("number")}})
 
 	// Add edges (provider → consumer)
 	log.Append(Event{Type: EventEdgeAdded, FromNode: "order", ToNode: "total", Label: LabelUses})
@@ -38,7 +38,7 @@ func TestBasicReplayAndImpact(t *testing.T) {
 	}
 
 	// Simulate changing the "total" field
-	changeEvent := Event{Type: EventAttrUpdated, NodeID: "total", Attrs: Attrs{"type": "currency"}}
+	changeEvent := Event{Type: EventAttrUpdated, NodeID: "total", Attrs: Attrs{"type": VString("currency")}}
 	seeds := changeEvent.ImpactSeeds()
 
 	if len(seeds) != 1 || seeds[0] != "total" {

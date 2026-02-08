@@ -29,8 +29,8 @@ type NodeSnapshot struct {
 type AttrChange struct {
 	NodeID  NodeID
 	Key     string
-	Before  any
-	After   any
+	Before  Value
+	After   Value
 	Deleted bool
 }
 
@@ -65,8 +65,8 @@ func ApplyEvent(g *Graph, e Event) (Delta, error) {
 		if node == nil {
 			return delta, fmt.Errorf("node does not exist: %s", e.NodeID)
 		}
-			for k, v := range e.Attrs {
-				before := node.Attrs[k]
+		for k, v := range e.Attrs {
+			before := node.Attrs[k]
 			change := AttrChange{
 				NodeID:  e.NodeID,
 				Key:     k,
@@ -199,7 +199,7 @@ func cloneAttrs(src Attrs) Attrs {
 	}
 	out := make(Attrs, len(src))
 	for k, v := range src {
-		out[k] = v
+		out[k] = DeepCopyValue(v)
 	}
 	return out
 }

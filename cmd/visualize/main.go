@@ -129,7 +129,7 @@ func runScale(ctx context.Context) {
 }
 
 func runRepair(ctx context.Context, g *p.Graph) {
-	e := p.Event{Type: p.EventAttrUpdated, NodeID: "field:order.subtotal", Attrs: p.Attrs{"type": "decimal"}}
+	e := p.Event{Type: p.EventAttrUpdated, NodeID: "field:order.subtotal", Attrs: p.Attrs{"type": p.VString("decimal")}}
 	plan := p.ComputeRepairPlan(ctx, g, e)
 	planTx := p.ComputeRepairPlanTx(ctx, g, e)
 	fmt.Printf("Event: AttrUpdated field:order.subtotal\n")
@@ -281,7 +281,7 @@ func runBench(ctx context.Context, nodes, edges, seed int) {
 	replayDur := time.Since(start)
 
 	seedID := p.NodeID(fmt.Sprintf("n:%d", seed%nodes))
-	event := p.Event{Type: p.EventAttrUpdated, NodeID: seedID, Attrs: p.Attrs{"touched": true}}
+	event := p.Event{Type: p.EventAttrUpdated, NodeID: seedID, Attrs: p.Attrs{"touched": p.VBool(true)}}
 
 	var ms runtime.MemStats
 	runtime.ReadMemStats(&ms)

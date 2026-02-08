@@ -258,7 +258,7 @@ func cloneNode(src *Node) *Node {
 	}
 	attrs := make(Attrs, len(src.Attrs))
 	for k, v := range src.Attrs {
-		attrs[k] = v
+		attrs[k] = DeepCopyValue(v)
 	}
 	outgoing := make([]Edge, len(src.Outgoing))
 	copy(outgoing, src.Outgoing)

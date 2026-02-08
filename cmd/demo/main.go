@@ -17,61 +17,61 @@ func main() {
 
 	// --- Entities ---
 	log.Append(p.Event{Type: p.EventNodeAdded, NodeID: "entity:order", NodeType: p.NodeEntity,
-		Attrs: p.Attrs{"name": "受注", "description": "受注管理エンティティ"}})
+		Attrs: p.Attrs{"name": p.VString("受注"), "description": p.VString("受注管理エンティティ")}})
 	log.Append(p.Event{Type: p.EventNodeAdded, NodeID: "entity:customer", NodeType: p.NodeEntity,
-		Attrs: p.Attrs{"name": "顧客", "description": "顧客マスタ"}})
+		Attrs: p.Attrs{"name": p.VString("顧客"), "description": p.VString("顧客マスタ")}})
 	log.Append(p.Event{Type: p.EventNodeAdded, NodeID: "entity:product", NodeType: p.NodeEntity,
-		Attrs: p.Attrs{"name": "商品", "description": "商品マスタ"}})
+		Attrs: p.Attrs{"name": p.VString("商品"), "description": p.VString("商品マスタ")}})
 
 	// --- Fields ---
 	log.Append(p.Event{Type: p.EventNodeAdded, NodeID: "field:order.subtotal", NodeType: p.NodeField,
-		Attrs: p.Attrs{"name": "小計", "type": "currency"}})
+		Attrs: p.Attrs{"name": p.VString("小計"), "type": p.VString("currency")}})
 	log.Append(p.Event{Type: p.EventNodeAdded, NodeID: "field:order.tax_rate", NodeType: p.NodeField,
-		Attrs: p.Attrs{"name": "税率", "type": "percent", "default": 0.1}})
+		Attrs: p.Attrs{"name": p.VString("税率"), "type": p.VString("percent"), "default": p.VNumber(0.1)}})
 	log.Append(p.Event{Type: p.EventNodeAdded, NodeID: "field:order.tax", NodeType: p.NodeField,
-		Attrs: p.Attrs{"name": "消費税", "type": "currency"}})
+		Attrs: p.Attrs{"name": p.VString("消費税"), "type": p.VString("currency")}})
 	log.Append(p.Event{Type: p.EventNodeAdded, NodeID: "field:order.total", NodeType: p.NodeField,
-		Attrs: p.Attrs{"name": "合計", "type": "currency"}})
+		Attrs: p.Attrs{"name": p.VString("合計"), "type": p.VString("currency")}})
 	log.Append(p.Event{Type: p.EventNodeAdded, NodeID: "field:customer.name", NodeType: p.NodeField,
-		Attrs: p.Attrs{"name": "顧客名", "type": "text"}})
+		Attrs: p.Attrs{"name": p.VString("顧客名"), "type": p.VString("text")}})
 	log.Append(p.Event{Type: p.EventNodeAdded, NodeID: "field:product.id", NodeType: p.NodeField,
-		Attrs: p.Attrs{"name": "商品ID", "type": "text"}})
+		Attrs: p.Attrs{"name": p.VString("商品ID"), "type": p.VString("text")}})
 	log.Append(p.Event{Type: p.EventNodeAdded, NodeID: "field:product.name", NodeType: p.NodeField,
-		Attrs: p.Attrs{"name": "商品名", "type": "text"}})
+		Attrs: p.Attrs{"name": p.VString("商品名"), "type": p.VString("text")}})
 
 	// --- Relation (N:M) ---
 	log.Append(p.Event{Type: p.EventNodeAdded, NodeID: "rel:order_product", NodeType: p.NodeRelation,
-		Attrs: p.Attrs{"name": "受注明細"}})
+		Attrs: p.Attrs{"name": p.VString("受注明細")}})
 	log.Append(p.Event{Type: p.EventNodeAdded, NodeID: "field:order_product.order_id", NodeType: p.NodeField,
-		Attrs: p.Attrs{"name": "受注ID", "type": "text"}})
+		Attrs: p.Attrs{"name": p.VString("受注ID"), "type": p.VString("text")}})
 	log.Append(p.Event{Type: p.EventNodeAdded, NodeID: "field:order_product.product_id", NodeType: p.NodeField,
-		Attrs: p.Attrs{"name": "商品ID", "type": "text"}})
+		Attrs: p.Attrs{"name": p.VString("商品ID"), "type": p.VString("text")}})
 	log.Append(p.Event{Type: p.EventNodeAdded, NodeID: "field:order_product.quantity", NodeType: p.NodeField,
-		Attrs: p.Attrs{"name": "数量", "type": "number"}})
+		Attrs: p.Attrs{"name": p.VString("数量"), "type": p.VString("number")}})
 	log.Append(p.Event{Type: p.EventNodeAdded, NodeID: "field:order_product.unit_price", NodeType: p.NodeField,
-		Attrs: p.Attrs{"name": "単価", "type": "currency"}})
+		Attrs: p.Attrs{"name": p.VString("単価"), "type": p.VString("currency")}})
 
 	// --- Expressions (computed fields) ---
 	log.Append(p.Event{Type: p.EventNodeAdded, NodeID: "expr:calc_tax", NodeType: p.NodeExpression,
-		Attrs: p.Attrs{"formula": "subtotal * tax_rate"}})
+		Attrs: p.Attrs{"formula": p.VString("subtotal * tax_rate")}})
 	log.Append(p.Event{Type: p.EventNodeAdded, NodeID: "expr:calc_total", NodeType: p.NodeExpression,
-		Attrs: p.Attrs{"formula": "subtotal + tax"}})
+		Attrs: p.Attrs{"formula": p.VString("subtotal + tax")}})
 	log.Append(p.Event{Type: p.EventNodeAdded, NodeID: "expr:line_total", NodeType: p.NodeExpression,
-		Attrs: p.Attrs{"formula": "quantity * unit_price"}})
+		Attrs: p.Attrs{"formula": p.VString("quantity * unit_price")}})
 
 	// --- Forms ---
 	log.Append(p.Event{Type: p.EventNodeAdded, NodeID: "form:order_entry", NodeType: p.NodeForm,
-		Attrs: p.Attrs{"name": "受注入力フォーム"}})
+		Attrs: p.Attrs{"name": p.VString("受注入力フォーム")}})
 
 	// --- Lists ---
 	log.Append(p.Event{Type: p.EventNodeAdded, NodeID: "list:order_list", NodeType: p.NodeList,
-		Attrs: p.Attrs{"name": "受注一覧", "columns": []string{"subtotal", "tax", "total"}}})
+		Attrs: p.Attrs{"name": p.VString("受注一覧"), "columns": p.VStrings([]string{"subtotal", "tax", "total"})}})
 	log.Append(p.Event{Type: p.EventNodeAdded, NodeID: "list:order_lines", NodeType: p.NodeList,
-		Attrs: p.Attrs{"name": "受注明細一覧", "columns": []string{"product_id", "quantity", "line_total"}}})
+		Attrs: p.Attrs{"name": p.VString("受注明細一覧"), "columns": p.VStrings([]string{"product_id", "quantity", "line_total"})}})
 
 	// --- Roles ---
 	log.Append(p.Event{Type: p.EventNodeAdded, NodeID: "role:sales", NodeType: p.NodeRole,
-		Attrs: p.Attrs{"name": "営業担当"}})
+		Attrs: p.Attrs{"name": p.VString("営業担当")}})
 
 	// --- Edges (provider → consumer) ---
 	// Entity owns fields
@@ -135,7 +135,7 @@ func main() {
 	changeEvent := p.Event{
 		Type:   p.EventAttrUpdated,
 		NodeID: "field:order.tax_rate",
-		Attrs:  p.Attrs{"type": "decimal", "precision": 4},
+		Attrs:  p.Attrs{"type": p.VString("decimal"), "precision": p.VNumber(4)},
 	}
 	fmt.Printf("Event: %s on %s\n", changeEvent.Type, changeEvent.NodeID)
 
@@ -152,7 +152,7 @@ func main() {
 	changeEvent2 := p.Event{
 		Type:   p.EventAttrUpdated,
 		NodeID: "field:order.subtotal",
-		Attrs:  p.Attrs{"validation": "required"},
+		Attrs:  p.Attrs{"validation": p.VString("required")},
 	}
 	fmt.Printf("Event: %s on %s\n", changeEvent2.Type, changeEvent2.NodeID)
 
@@ -191,7 +191,7 @@ func main() {
 	relEvent := p.Event{
 		Type:   p.EventAttrUpdated,
 		NodeID: "field:order_product.quantity",
-		Attrs:  p.Attrs{"type": "decimal"},
+		Attrs:  p.Attrs{"type": p.VString("decimal")},
 	}
 	fmt.Printf("Event: %s on %s\n", relEvent.Type, relEvent.NodeID)
 

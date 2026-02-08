@@ -59,7 +59,7 @@ func TestApplyRollbackNoopNodeAdded(t *testing.T) {
 func TestApplyRollbackNoopNodeRemoved(t *testing.T) {
 	// NodeRemoved の apply + rollback で元の状態に戻ることを確認
 	log := NewEventLog()
-	log.Append(Event{Type: EventNodeAdded, NodeID: "a", NodeType: NodeField, Attrs: Attrs{"x": 1}})
+	log.Append(Event{Type: EventNodeAdded, NodeID: "a", NodeType: NodeField, Attrs: Attrs{"x": VNumber(1)}})
 	log.Append(Event{Type: EventNodeAdded, NodeID: "b", NodeType: NodeField})
 	log.Append(Event{Type: EventEdgeAdded, FromNode: "a", ToNode: "b", Label: LabelUses})
 	g := ReplayLatest(log)
@@ -82,11 +82,11 @@ func TestApplyRollbackNoopNodeRemoved(t *testing.T) {
 func TestApplyRollbackNoopAttrUpdated(t *testing.T) {
 	// AttrUpdated の apply + rollback で元の状態に戻ることを確認
 	log := NewEventLog()
-	log.Append(Event{Type: EventNodeAdded, NodeID: "a", NodeType: NodeField, Attrs: Attrs{"x": 1, "y": 2}})
+	log.Append(Event{Type: EventNodeAdded, NodeID: "a", NodeType: NodeField, Attrs: Attrs{"x": VNumber(1), "y": VNumber(2)}})
 	g := ReplayLatest(log)
 
 	before := snapshotGraph(g)
-	delta, err := ApplyEvent(g, Event{Type: EventAttrUpdated, NodeID: "a", Attrs: Attrs{"x": 3, "y": nil}})
+	delta, err := ApplyEvent(g, Event{Type: EventAttrUpdated, NodeID: "a", Attrs: Attrs{"x": VNumber(3), "y": nil}})
 	if err != nil {
 		t.Fatalf("apply failed: %v", err)
 	}

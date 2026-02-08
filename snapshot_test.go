@@ -11,8 +11,8 @@ func TestReplayFromSnapshotMatchesFullReplay(t *testing.T) {
 	log.Append(Event{Type: EventNodeAdded, NodeID: "a", NodeType: NodeField})
 	log.Append(Event{Type: EventNodeAdded, NodeID: "b", NodeType: NodeField})
 	log.Append(Event{Type: EventEdgeAdded, FromNode: "a", ToNode: "b", Label: LabelUses})
-	log.Append(Event{Type: EventAttrUpdated, NodeID: "a", Attrs: Attrs{"x": 1}})
-	log.Append(Event{Type: EventAttrUpdated, NodeID: "b", Attrs: Attrs{"y": 2}})
+	log.Append(Event{Type: EventAttrUpdated, NodeID: "a", Attrs: Attrs{"x": VNumber(1)}})
+	log.Append(Event{Type: EventAttrUpdated, NodeID: "b", Attrs: Attrs{"y": VNumber(2)}})
 
 	snap := SnapshotFromLog(log, 2)
 	full := Replay(log, 4)

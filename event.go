@@ -62,10 +62,10 @@ const (
 	NodeParam      NodeType = "Param"
 )
 
-// Attrs holds arbitrary node attributes.
-// Contract: values must be JSON-serializable scalars (string/number/bool) or simple arrays.
-// Do not store nested maps, slices of maps, or pointers; callers must treat values as immutable.
-type Attrs map[string]any
+// Attrs holds JSON-like node attributes.
+// Values must be Value (JSON-like) and treated as immutable by callers.
+// nil means deletion when used in AttrUpdated; use VNull() to represent JSON null.
+type Attrs map[string]Value
 
 // Event represents a single atomic change to the configuration graph.
 // イベントは自己完結的で、ログの追記のみで運用する。
@@ -83,8 +83,8 @@ type Event struct {
 	Label    EdgeLabel
 
 	// For TransactionMarker
-	TxID    string
-	TxMeta  map[string]string
+	TxID   string
+	TxMeta map[string]string
 }
 
 // Seeds extracts the impact seeds from an event.

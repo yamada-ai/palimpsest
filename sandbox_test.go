@@ -17,7 +17,7 @@ func TestSandboxSimulateEventIsolation(t *testing.T) {
 
 	sb := NewSandbox(snap, log, log.Len()-1)
 	ctx := context.Background()
-	res := sb.SimulateEvent(ctx, Event{Type: EventAttrUpdated, NodeID: "a", Attrs: Attrs{"x": 1}})
+	res := sb.SimulateEvent(ctx, Event{Type: EventAttrUpdated, NodeID: "a", Attrs: Attrs{"x": VNumber(1)}})
 	if res.Error != nil {
 		t.Fatalf("unexpected error: %v", res.Error)
 	}
@@ -39,7 +39,7 @@ func TestSandboxSimulateTxIsolation(t *testing.T) {
 	sb := NewSandbox(snap, log, log.Len()-1)
 	ctx := context.Background()
 	events := []Event{
-		{Type: EventAttrUpdated, NodeID: "a", Attrs: Attrs{"x": 1}},
+		{Type: EventAttrUpdated, NodeID: "a", Attrs: Attrs{"x": VNumber(1)}},
 		{Type: EventEdgeAdded, FromNode: "a", ToNode: "b", Label: LabelUses},
 	}
 	res := sb.SimulateTx(ctx, events)

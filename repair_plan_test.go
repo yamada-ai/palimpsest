@@ -17,7 +17,7 @@ func TestRepairPlanOrdering(t *testing.T) {
 
 	g := ReplayLatest(log)
 	ctx := context.Background()
-	e := Event{Type: EventAttrUpdated, NodeID: "field:a", Attrs: Attrs{"x": 1}}
+	e := Event{Type: EventAttrUpdated, NodeID: "field:a", Attrs: Attrs{"x": VNumber(1)}}
 	plan := ComputeRepairPlan(ctx, g, e)
 
 	if len(plan.Suggestions) == 0 {
@@ -35,7 +35,7 @@ func TestRepairPlanExcludesSeeds(t *testing.T) {
 	g := ReplayLatest(log)
 
 	ctx := context.Background()
-	e := Event{Type: EventAttrUpdated, NodeID: "field:a", Attrs: Attrs{"x": 1}}
+	e := Event{Type: EventAttrUpdated, NodeID: "field:a", Attrs: Attrs{"x": VNumber(1)}}
 	plan := ComputeRepairPlan(ctx, g, e)
 	if len(plan.Suggestions) != 0 {
 		t.Fatalf("expected no suggestions when only seed is impacted")

@@ -13,7 +13,7 @@ func TestRepairPlanTxProposals(t *testing.T) {
 
 	g := ReplayLatest(log)
 	ctx := context.Background()
-	e := Event{Type: EventAttrUpdated, NodeID: "field:a", Attrs: Attrs{"x": 1}}
+	e := Event{Type: EventAttrUpdated, NodeID: "field:a", Attrs: Attrs{"x": VNumber(1)}}
 	plan := ComputeRepairPlanTx(ctx, g, e)
 
 	if len(plan.Actions) == 0 {

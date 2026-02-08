@@ -37,7 +37,7 @@ func TestValidateEventAttrUpdatedMissingNode(t *testing.T) {
 	// 存在しないノードへの属性更新は拒否される
 	g := NewGraph()
 	ctx := context.Background()
-	result := ValidateEvent(ctx, g, Event{Type: EventAttrUpdated, NodeID: "missing", Attrs: Attrs{"x": 1}})
+	result := ValidateEvent(ctx, g, Event{Type: EventAttrUpdated, NodeID: "missing", Attrs: Attrs{"x": VNumber(1)}})
 	if result.Valid {
 		t.Fatalf("expected attr update on missing node to be invalid")
 	}
@@ -110,7 +110,7 @@ func TestValidateEventWithCustomValidators(t *testing.T) {
 	g := ReplayLatest(log)
 
 	ctx := context.Background()
-	res := ValidateEventWith(ctx, g, Event{Type: EventAttrUpdated, NodeID: "a", Attrs: Attrs{"x": 1}}, []Validator{testValidator{}})
+	res := ValidateEventWith(ctx, g, Event{Type: EventAttrUpdated, NodeID: "a", Attrs: Attrs{"x": VNumber(1)}}, []Validator{testValidator{}})
 	if res.Valid {
 		t.Fatalf("expected validation to fail with custom validator")
 	}

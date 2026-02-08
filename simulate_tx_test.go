@@ -35,7 +35,7 @@ func TestSimulateTxApplyRollback(t *testing.T) {
 	before := snapshotTxGraph(g)
 	ctx := context.Background()
 	events := []Event{
-		{Type: EventAttrUpdated, NodeID: "a", Attrs: Attrs{"x": 1}},
+		{Type: EventAttrUpdated, NodeID: "a", Attrs: Attrs{"x": VNumber(1)}},
 		{Type: EventEdgeAdded, FromNode: "a", ToNode: "b", Label: LabelUses},
 	}
 
@@ -61,7 +61,7 @@ func TestSimulateTxPreValidateRejects(t *testing.T) {
 	ctx := context.Background()
 	events := []Event{
 		{Type: EventNodeRemoved, NodeID: "missing"},
-		{Type: EventAttrUpdated, NodeID: "missing", Attrs: Attrs{"x": 1}},
+		{Type: EventAttrUpdated, NodeID: "missing", Attrs: Attrs{"x": VNumber(1)}},
 	}
 
 	res := SimulateTx(ctx, g, events)
@@ -102,7 +102,7 @@ func TestSimulateTxImpactPrePost(t *testing.T) {
 	g := ReplayLatest(log)
 
 	ctx := context.Background()
-	events := []Event{{Type: EventAttrUpdated, NodeID: "a", Attrs: Attrs{"x": 1}}}
+	events := []Event{{Type: EventAttrUpdated, NodeID: "a", Attrs: Attrs{"x": VNumber(1)}}}
 	res := SimulateTx(ctx, g, events)
 
 	if res.PreImpact == nil || res.PostImpact == nil {

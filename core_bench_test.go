@@ -59,7 +59,7 @@ func BenchmarkImpact(b *testing.B) {
 			for i := 0; i < spec.nodes; i++ {
 				nodeIDs = append(nodeIDs, NodeID(fmt.Sprintf("n:%d", i)))
 			}
-			event := Event{Type: EventAttrUpdated, Attrs: Attrs{"touched": true}}
+			event := Event{Type: EventAttrUpdated, Attrs: Attrs{"touched": VBool(true)}}
 			b.ReportAllocs()
 			b.ResetTimer()
 			for i := 0; i < b.N; i++ {
@@ -77,7 +77,7 @@ func BenchmarkSimulateEvent(b *testing.B) {
 		b.Run(spec.name, func(b *testing.B) {
 			log := buildBenchLog(spec.nodes, spec.edges)
 			g := ReplayLatest(log)
-			event := Event{Type: EventAttrUpdated, NodeID: NodeID("n:42"), Attrs: Attrs{"touched": true}}
+			event := Event{Type: EventAttrUpdated, NodeID: NodeID("n:42"), Attrs: Attrs{"touched": VBool(true)}}
 			b.ReportAllocs()
 			b.ResetTimer()
 			for i := 0; i < b.N; i++ {
@@ -94,7 +94,7 @@ func BenchmarkValidateEvent(b *testing.B) {
 		b.Run(spec.name, func(b *testing.B) {
 			log := buildBenchLog(spec.nodes, spec.edges)
 			g := ReplayLatest(log)
-			event := Event{Type: EventAttrUpdated, NodeID: NodeID("n:42"), Attrs: Attrs{"touched": true}}
+			event := Event{Type: EventAttrUpdated, NodeID: NodeID("n:42"), Attrs: Attrs{"touched": VBool(true)}}
 			b.ReportAllocs()
 			b.ResetTimer()
 			for i := 0; i < b.N; i++ {
