@@ -58,6 +58,22 @@ BenchmarkReplayWithAttrs/N50k_M150k/Attrs20-8     116  50.10ms/op  65.90MB/op  3
 BenchmarkBuildGraphFromSnapshot/SnapEvery1000-8   272  22.16ms/op  23.35MB/op  200,131 allocs/op
 BenchmarkBuildGraphFromSnapshot/SnapEvery5000-8   273  22.19ms/op  23.35MB/op  200,131 allocs/op
 BenchmarkBuildGraphFromSnapshot/SnapEvery10000-8  270  22.41ms/op  23.35MB/op  200,131 allocs/op
+
+# Edge density (M/N)
+BenchmarkImpactEdgeDensity/N10k_M30k/MperN1-8   189,831  39.6µs/op   38.8KB/op     243 allocs/op
+BenchmarkImpactEdgeDensity/N10k_M30k/MperN3-8   159,627  38.8µs/op   48.4KB/op     243 allocs/op
+BenchmarkImpactEdgeDensity/N10k_M30k/MperN10-8   96,859  54.7µs/op   82.0KB/op     243 allocs/op
+BenchmarkImpactEdgeDensity/N50k_M150k/MperN1-8   24,033 255.4µs/op  297KB/op      1,067 allocs/op
+BenchmarkImpactEdgeDensity/N50k_M150k/MperN3-8   23,002 282.1µs/op  345KB/op      1,067 allocs/op
+BenchmarkImpactEdgeDensity/N50k_M150k/MperN10-8  17,041 386.2µs/op  513KB/op      1,067 allocs/op
+
+# Relation mix (ImpactFromEventFiltered)
+BenchmarkImpactRelationMix/N10k_M30k/None-8      1,428  4.26ms/op  4.13MB/op   20,242 allocs/op
+BenchmarkImpactRelationMix/N10k_M30k/Every10-8   1,603  3.76ms/op  4.24MB/op   20,263 allocs/op
+BenchmarkImpactRelationMix/N10k_M30k/Every5-8    1,597  4.20ms/op  4.35MB/op   20,272 allocs/op
+BenchmarkImpactRelationMix/N50k_M150k/None-8       296 19.72ms/op 17.18MB/op  100,824 allocs/op
+BenchmarkImpactRelationMix/N50k_M150k/Every10-8    271 29.15ms/op 17.62MB/op  100,871 allocs/op
+BenchmarkImpactRelationMix/N50k_M150k/Every5-8     242 27.43ms/op 18.06MB/op  100,904 allocs/op
 ```
 
 ---
@@ -70,3 +86,5 @@ BenchmarkBuildGraphFromSnapshot/SnapEvery10000-8  270  22.41ms/op  23.35MB/op  2
 - **SimulateTx**: Tx長にほぼ線形ならOK。
 - **ValidateEvent**: 定数時間で動けば仕様通り。
 - **Replay / ValidateFull**: O(N+M) なのでスケール感の確認用。
+- **Edge density**: M/N が増えても緩やかに増えるなら良い（爆発しないことを確認）。
+- **Relation mix**: Relation ノードの混在で大崩れしないことを確認。

@@ -34,6 +34,38 @@ func buildBenchLog(nodes, edges int) *EventLog {
 	return log
 }
 
+func buildDenseLog(nodes int, ratio int) *EventLog {
+	// Edge density: edges = nodes * ratio.
+	edges := nodes * ratio
+	return buildBenchLog(nodes, edges)
+}
+
+func buildRelationMixLog(nodes int, relEvery int) *EventLog {
+	log := NewEventLog()
+	for i := 0; i < nodes; i++ {
+		id := NodeID(fmt.Sprintf("n:%d", i))
+		nodeType := NodeField
+		if relEvery > 0 && i%relEvery == 0 {
+			nodeType = NodeRelation
+		}
+		log.Append(Event{Type: EventNodeAdded, NodeID: id, NodeType: nodeType})
+	}
+	// Relation nodes act as intermediates to create realistic traversal costs.
+	prev := NodeID("n:0")
+	for i := 1; i < nodes; i++ {
+		cur := NodeID(fmt.Sprintf("n:%d", i))
+		label := LabelUses
+		log.Append(Event{
+			Type:     EventEdgeAdded,
+			FromNode: prev,
+			ToNode:   cur,
+			Label:    label,
+		})
+		prev = cur
+	}
+	return log
+}
+
 func buildAttrLog(nodes, edges, attrKeys int) *EventLog {
 	log := NewEventLog()
 	for i := 0; i < nodes; i++ {
@@ -148,6 +180,29 @@ func BenchmarkImpact(b *testing.B) {
 	}
 }
 
+func BenchmarkImpactEdgeDensity(b *testing.B) {
+	ctx := context.Background()
+	ratios := []int{1, 3, 10}
+	for _, spec := range benchSpecs {
+		spec := spec
+		b.Run(spec.name, func(b *testing.B) {
+			for _, ratio := range ratios {
+				ratio := ratio
+				b.Run(fmt.Sprintf("MperN%d", ratio), func(b *testing.B) {
+					log := buildDenseLog(spec.nodes, ratio)
+					g := ReplayLatest(log)
+					event := Event{Type: EventAttrUpdated, NodeID: "n:0", Attrs: Attrs{"touched": VBool(true)}}
+					b.ReportAllocs()
+					b.ResetTimer()
+					for i := 0; i < b.N; i++ {
+						_ = ImpactFromEvent(ctx, g, event)
+					}
+				})
+			}
+		})
+	}
+}
+
 func BenchmarkImpactWorstCase(b *testing.B) {
 	ctx := context.Background()
 	for _, spec := range benchSpecs {
@@ -225,6 +280,37 @@ func BenchmarkSimulateTx(b *testing.B) {
 							events[j].NodeID = nodeIDs[(start+j)%len(nodeIDs)]
 						}
 						_ = SimulateTx(ctx, g, events)
+					}
+				})
+			}
+		})
+	}
+}
+
+func BenchmarkImpactRelationMix(b *testing.B) {
+	ctx := context.Background()
+	mixes := []struct {
+		label string
+		every int
+	}{
+		{label: "None", every: 0},
+		{label: "Every10", every: 10}, // 10%
+		{label: "Every5", every: 5},   // 20%
+	}
+	for _, spec := range benchSpecs {
+		spec := spec
+		b.Run(spec.name, func(b *testing.B) {
+			for _, mix := range mixes {
+				mix := mix
+				b.Run(mix.label, func(b *testing.B) {
+					log := buildRelationMixLog(spec.nodes, mix.every)
+					g := ReplayLatest(log)
+					filter := &ImpactFilter{NodeTypes: map[NodeType]bool{NodeRelation: true}}
+					event := Event{Type: EventAttrUpdated, NodeID: "n:0", Attrs: Attrs{"touched": VBool(true)}}
+					b.ReportAllocs()
+					b.ResetTimer()
+					for i := 0; i < b.N; i++ {
+						_ = ImpactFromEventFiltered(ctx, g, event, filter)
 					}
 				})
 			}
