@@ -34,6 +34,8 @@ go run ./cmd/visualize -mode all # 可視化デモ（Why/Impact/Remove/Scale/Rep
 go run ./cmd/visualize -mode bench -bench-nodes 50000 -bench-edges 150000
 ```
 
+ベンチ結果は `docs/benchmarks.md` に集約。
+
 ## Sandbox / Speculative（利用例）
 
 ```go
@@ -109,6 +111,7 @@ palimpsest/
 ├── replay.go          # ログ → グラフ射影
 ├── impact.go          # BFS + 証拠パス
 ├── validation.go      # Dangling 検出
+├── value.go           # JSON-like Value
 ├── impact_test.go     # テスト
 ├── cmd/demo/main.go   # デモ
 └── docs/
@@ -124,7 +127,9 @@ palimpsest/
     │   ├── 0004-validation-responsibility.md
     │   ├── 0005-delta-based-apply-and-rollback.md
     │   ├── 0006-immutable-snapshot-and-tail-replay.md
-    │   └── 0007-lazy-evidence.md
+    │   ├── 0007-lazy-evidence.md
+    │   └── 0008-expression-front-end.md
+    ├── benchmarks.md              # ベンチ結果
     ├── roadmap.md                  # 実装順・進捗
     ├── specs/
     │   ├── mvp.md                  # MVP 仕様
