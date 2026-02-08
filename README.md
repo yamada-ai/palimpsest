@@ -114,6 +114,8 @@ palimpsest/
 ├── value.go           # JSON-like Value
 ├── impact_test.go     # テスト
 ├── cmd/demo/main.go   # デモ
+├── packages/
+│   └── expr/           # 式言語（parser/resolve/dep/eval）
 └── docs/
     ├── theory/
     │   ├── charter.md              # 理論憲章
