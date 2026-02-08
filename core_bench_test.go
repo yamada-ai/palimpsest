@@ -34,21 +34,23 @@ func buildBenchLog(nodes, edges int) *EventLog {
 	return log
 }
 
-func buildHubLog(nodes int) *EventLog {
-	// Worst-case-ish: one hub node depends to all others.
+func buildAttrLog(nodes, edges, attrKeys int) *EventLog {
 	log := NewEventLog()
 	for i := 0; i < nodes; i++ {
 		id := NodeID(fmt.Sprintf("n:%d", i))
-		log.Append(Event{Type: EventNodeAdded, NodeID: id, NodeType: NodeField})
+		attrs := make(Attrs, attrKeys)
+		for k := 0; k < attrKeys; k++ {
+			attrs[fmt.Sprintf("k%d", k)] = VNumber(float64(k))
+		}
+		log.Append(Event{Type: EventNodeAdded, NodeID: id, NodeType: NodeField, Attrs: attrs})
 	}
-	// Hub: n:0 -> n:1..n:(nodes-1)
-	for i := 1; i < nodes; i++ {
-		log.Append(Event{
-			Type:     EventEdgeAdded,
-			FromNode: "n:0",
-			ToNode:   NodeID(fmt.Sprintf("n:%d", i)),
-			Label:    LabelUses,
-		})
+	for i := 0; i < edges; i++ {
+		from := i % nodes
+		to := (i*7 + 1) % nodes
+		if from == to {
+			to = (to + 1) % nodes
+		}
+		log.Append(Event{Type: EventEdgeAdded, FromNode: NodeID(fmt.Sprintf("n:%d", from)), ToNode: NodeID(fmt.Sprintf("n:%d", to)), Label: LabelUses})
 	}
 	return log
 }
@@ -71,6 +73,25 @@ func buildChainLog(nodes int) *EventLog {
 	return log
 }
 
+func buildHubLog(nodes int) *EventLog {
+	// Worst-case-ish: one hub node depends to all others.
+	log := NewEventLog()
+	for i := 0; i < nodes; i++ {
+		id := NodeID(fmt.Sprintf("n:%d", i))
+		log.Append(Event{Type: EventNodeAdded, NodeID: id, NodeType: NodeField})
+	}
+	// Hub: n:0 -> n:1..n:(nodes-1)
+	for i := 1; i < nodes; i++ {
+		log.Append(Event{
+			Type:     EventEdgeAdded,
+			FromNode: "n:0",
+			ToNode:   NodeID(fmt.Sprintf("n:%d", i)),
+			Label:    LabelUses,
+		})
+	}
+	return log
+}
+
 func BenchmarkReplay(b *testing.B) {
 	for _, spec := range benchSpecs {
 		spec := spec
@@ -80,6 +101,26 @@ func BenchmarkReplay(b *testing.B) {
 			b.ResetTimer()
 			for i := 0; i < b.N; i++ {
 				_ = ReplayLatest(log)
+			}
+		})
+	}
+}
+
+func BenchmarkReplayWithAttrs(b *testing.B) {
+	attrKeys := []int{1, 5, 20}
+	for _, spec := range benchSpecs {
+		spec := spec
+		b.Run(spec.name, func(b *testing.B) {
+			for _, keys := range attrKeys {
+				keys := keys
+				b.Run(fmt.Sprintf("Attrs%d", keys), func(b *testing.B) {
+					log := buildAttrLog(spec.nodes, spec.edges, keys)
+					b.ReportAllocs()
+					b.ResetTimer()
+					for i := 0; i < b.N; i++ {
+						_ = ReplayLatest(log)
+					}
+				})
 			}
 		})
 	}
@@ -219,6 +260,33 @@ func BenchmarkValidateFull(b *testing.B) {
 			b.ResetTimer()
 			for i := 0; i < b.N; i++ {
 				_ = Validate(ctx, g)
+			}
+		})
+	}
+}
+
+func BenchmarkBuildGraphFromSnapshot(b *testing.B) {
+	spec := benchSpec{name: "N50k_M150k", nodes: 50000, edges: 150000}
+	intervals := []int{1000, 5000, 10000}
+	for _, interval := range intervals {
+		interval := interval
+		b.Run(fmt.Sprintf("SnapEvery%d", interval), func(b *testing.B) {
+			log := buildBenchLog(spec.nodes, spec.edges)
+			latest := log.Len() - 1
+			if latest < 0 {
+				return
+			}
+			// Pick the latest snapshot boundary (k*interval - 1).
+			k := (latest + 1) / interval
+			rev := k*interval - 1
+			if rev < 0 {
+				rev = latest
+			}
+			snap := SnapshotFromLog(log, rev)
+			b.ReportAllocs()
+			b.ResetTimer()
+			for i := 0; i < b.N; i++ {
+				_ = ReplayFromSnapshot(snap, log, latest)
 			}
 		})
 	}
