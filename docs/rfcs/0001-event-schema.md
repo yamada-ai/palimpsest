@@ -102,10 +102,32 @@ TxMarker(tx_id: string, meta: map[string]string)
 MVP:
 
 $$
-T = \{\texttt{Entity}, \texttt{Field}, \texttt{Form}, \texttt{List}, \texttt{Expression}, \texttt{Role}, \texttt{Param}\}
+T = \{\texttt{Entity}, \texttt{Relation}, \texttt{Field}, \texttt{Form}, \texttt{List}, \texttt{Expression}, \texttt{Role}, \texttt{Param}\}
 $$
 
 将来拡張: `CsvSchema`, `ApiSchema`, `Workflow`, `PermissionRule`, ...
+
+### 4.1 Relation ノードの運用ルール
+
+**Relation は「関係そのもの」を表すノード。N:M は必ず Relation を介す。**
+
+ルール:
+- `Entity ↔ Entity` の直接エッジ（`uses`/`derives`）は禁止
+  - N:M を直エッジで表現しない
+- N:M または「関係に属性が付く」場合は Relation ノードを作る
+  - 例: `rel:order_product` に `quantity` / `unit_price` 等の属性を持たせる
+- `controls` / `constrains` は Entity↔Entity でも許可（権限制御や制約は例外）
+
+典型構造（N:M の例）:
+
+```
+entity:order   --derives-->  rel:order_product
+entity:product --derives-->  rel:order_product
+entity:order   --constrains--> field:order_product.order_id
+entity:product --constrains--> field:order_product.product_id
+field:order_product.quantity --uses--> expr:line_total
+```
+
 
 ---
 
