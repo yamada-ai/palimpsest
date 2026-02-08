@@ -13,7 +13,7 @@ import (
 )
 
 func main() {
-	mode := flag.String("mode", "all", "demo mode: all|why|impact|remove|scale|repair|repair-cascade|future")
+	mode := flag.String("mode", "all", "demo mode: all|why|impact|remove|scale|repair|repair-cascade|relation|future")
 	depth := flag.Int("depth", 3, "impact tree depth")
 	benchNodes := flag.Int("bench-nodes", 20000, "benchmark: number of nodes")
 	benchEdges := flag.Int("bench-edges", 60000, "benchmark: number of edges")
@@ -37,6 +37,8 @@ func main() {
 		runRepair(ctx, g)
 	case "repair-cascade":
 		runRepairCascade(ctx, g)
+	case "relation":
+		runRelation(ctx)
 	case "future":
 		runFuture(ctx, g)
 	case "bench":
@@ -61,10 +63,13 @@ func main() {
 		fmt.Println("(6) Repair-Cascade: applyable proposals")
 		runRepairCascade(ctx, g)
 		fmt.Println()
-		fmt.Println("(7) Future Graph: apply proposals and preview")
+		fmt.Println("(7) Relation: N:M attributes")
+		runRelation(ctx)
+		fmt.Println()
+		fmt.Println("(8) Future Graph: apply proposals and preview")
 		runFuture(ctx, g)
 		fmt.Println()
-		fmt.Println("(8) Bench: impact time/memory")
+		fmt.Println("(9) Bench: impact time/memory")
 		runBench(ctx, *benchNodes, *benchEdges, *benchSeed)
 	default:
 		fmt.Fprintf(os.Stderr, "unknown mode: %s\n", *mode)
@@ -153,6 +158,33 @@ func runRepairCascade(ctx context.Context, g *p.Graph) {
 			fmt.Printf("      %s (applyable=%v, auto=%s) %s\n", p.Event.Type, p.Applyable, p.AutoLevel.String(), p.Note)
 		}
 	}
+}
+
+func runRelation(ctx context.Context) {
+	log := p.NewEventLog()
+	log.Append(p.Event{Type: p.EventNodeAdded, NodeID: "entity:product", NodeType: p.NodeEntity})
+	log.Append(p.Event{Type: p.EventNodeAdded, NodeID: "entity:tag", NodeType: p.NodeEntity})
+	log.Append(p.Event{Type: p.EventNodeAdded, NodeID: "rel:product_tag", NodeType: p.NodeRelation})
+	log.Append(p.Event{Type: p.EventNodeAdded, NodeID: "field:product_tag.product_id", NodeType: p.NodeField})
+	log.Append(p.Event{Type: p.EventNodeAdded, NodeID: "field:product_tag.tag_id", NodeType: p.NodeField})
+	log.Append(p.Event{Type: p.EventNodeAdded, NodeID: "field:product_tag.quantity", NodeType: p.NodeField})
+	log.Append(p.Event{Type: p.EventNodeAdded, NodeID: "expr:tagged_products.filter", NodeType: p.NodeExpression})
+	log.Append(p.Event{Type: p.EventNodeAdded, NodeID: "list:tagged_products", NodeType: p.NodeList})
+
+	log.Append(p.Event{Type: p.EventEdgeAdded, FromNode: "entity:product", ToNode: "rel:product_tag", Label: p.LabelDerives})
+	log.Append(p.Event{Type: p.EventEdgeAdded, FromNode: "entity:tag", ToNode: "rel:product_tag", Label: p.LabelDerives})
+	log.Append(p.Event{Type: p.EventEdgeAdded, FromNode: "entity:product", ToNode: "field:product_tag.product_id", Label: p.LabelConstrains})
+	log.Append(p.Event{Type: p.EventEdgeAdded, FromNode: "entity:tag", ToNode: "field:product_tag.tag_id", Label: p.LabelConstrains})
+	log.Append(p.Event{Type: p.EventEdgeAdded, FromNode: "field:product_tag.quantity", ToNode: "expr:tagged_products.filter", Label: p.LabelUses})
+	log.Append(p.Event{Type: p.EventEdgeAdded, FromNode: "expr:tagged_products.filter", ToNode: "list:tagged_products", Label: p.LabelDerives})
+
+	g := p.ReplayLatest(log)
+	e := p.Event{Type: p.EventAttrUpdated, NodeID: "field:product_tag.quantity"}
+	res := p.ImpactFromEvent(ctx, g, e)
+
+	fmt.Printf("Event: AttrUpdated field:product_tag.quantity\n")
+	fmt.Printf("Impact: %d nodes affected\n", len(res.Impacted))
+	fmt.Printf("Evidence: %s\n", res.Explain("list:tagged_products"))
 }
 
 func runFuture(ctx context.Context, g *p.Graph) {
