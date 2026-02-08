@@ -3,9 +3,28 @@ package main
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	p "github.com/user/palimpsest"
+	"github.com/user/palimpsest/packages/expr"
 )
+
+type demoResolver struct {
+	refs   map[string]p.NodeID
+	fields map[string]p.NodeID
+}
+
+func (r demoResolver) ResolveRef(namespace string, path []string) (p.NodeID, bool) {
+	key := namespace + ":" + strings.Join(path, ".")
+	id, ok := r.refs[key]
+	return id, ok
+}
+
+func (r demoResolver) ResolveEntityField(entityID p.NodeID, column string) (p.NodeID, bool) {
+	key := string(entityID) + "." + column
+	id, ok := r.fields[key]
+	return id, ok
+}
 
 func main() {
 	fmt.Println("=== Palimpsest PoC Demo ===")
@@ -227,4 +246,36 @@ func main() {
 
 	fmt.Println()
 	fmt.Println("=== Demo Complete ===")
+
+	// --- Expr E2E Demo ---
+	fmt.Println()
+	fmt.Println("=== Expr E2E Demo ===")
+	exprLog := p.NewEventLog()
+	exprLog.Append(p.Event{Type: p.EventNodeAdded, NodeID: "field:a", NodeType: p.NodeField, Attrs: p.Attrs{"name": p.VString("a")}})
+	exprLog.Append(p.Event{Type: p.EventNodeAdded, NodeID: "field:b", NodeType: p.NodeField, Attrs: p.Attrs{"name": p.VString("b")}})
+	exprLog.Append(p.Event{Type: p.EventNodeAdded, NodeID: "expr:calc", NodeType: p.NodeExpression, Attrs: p.Attrs{"formula": p.VString("SUM($field:a, $field:b)")}})
+	exprLog.Append(p.Event{Type: p.EventNodeAdded, NodeID: "field:out", NodeType: p.NodeField, Attrs: p.Attrs{"name": p.VString("out")}})
+
+	ast2, diags2 := expr.Parse(`SUM($field:a, $field:b)`)
+	if len(diags2) > 0 {
+		fmt.Printf("Parse diagnostics: %v\n", diags2)
+		return
+	}
+	summary := expr.Analyze(ast2, demoResolver{
+		refs: map[string]p.NodeID{
+			"field:a": "field:a",
+			"field:b": "field:b",
+		},
+		fields: map[string]p.NodeID{},
+	}, "expr:calc", "field:out")
+	depEvents := expr.BuildDepEvents(summary)
+	for _, e := range depEvents {
+		exprLog.Append(e)
+	}
+
+	exprGraph := p.ReplayLatest(exprLog)
+	change := p.Event{Type: p.EventAttrUpdated, NodeID: "field:a", Attrs: p.Attrs{"touched": p.VBool(true)}}
+	impactExpr := p.ImpactFromEvent(ctx, exprGraph, change)
+	fmt.Printf("Impact: %d nodes affected\n", len(impactExpr.Impacted))
+	fmt.Printf("Why field:out? %s\n", impactExpr.Explain("field:out"))
 }
